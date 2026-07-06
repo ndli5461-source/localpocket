@@ -2604,41 +2604,6 @@
           .catch(() => { sendRuntimeMessage({ type: "open-ai-sidebar" }).catch(() => {}); });
       });
     }
-      if (!state.open || state.panelMode !== "editor") return;
-      const d = event.data;
-      if (!d || typeof d !== "object") return;
-      // Editor frame menghantar selection event
-      if (d.type === "lp-notes-selection" || d.type === "lp-notes-text-selected") {
-        const text = d.text ? String(d.text).trim() : "";
-        const sssBtn = state.refs.sssBtn;
-        if (!sssBtn) return;
-        if (text.length > 0) {
-          sssBtn.style.display = "inline-flex";
-          sssBtn._selectedText = text;
-        } else {
-          sssBtn.style.display = "none";
-          sssBtn._selectedText = "";
-        }
-      }
-    });
-
-    if (state.refs.sssBtn) {
-      state.refs.sssBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const text = state.refs.sssBtn._selectedText || "";
-        if (!text) return;
-        // Hantar ke AI sidebar dengan teks terpilih
-        sendRuntimeMessage({
-          type: "open-ai-sidebar-with-prompt",
-          prompt: text
-        }).then(() => {
-          if (state.refs.sssBtn) state.refs.sssBtn.style.display = "none";
-        }).catch(() => {
-          // Fallback — buka sidebar biasa
-          sendRuntimeMessage({ type: "open-ai-sidebar" }).catch(() => {});
-        });
-      });
-    }
 
     if (state.refs.folderPaletteInput) {
       state.refs.folderPaletteInput.addEventListener("input", handleFolderPaletteInput);
@@ -4993,6 +4958,31 @@
 
   function handleDocumentKeydown(event) {
     if (!state.open) return;
+
+    // ── Hover + D — delete nota yang di-hover walaupun fokus di luar overlay ──
+    // handleOverlayKeydown hanya jalan bila fokus DALAM overlay; bila user
+    // hanya hover dengan mouse (fokus masih pada page), event keydown tak
+    // melalui overlay, jadi kita handle di sini.
+    if (
+      !isEventFromOverlay(event)
+      && state.panelMode === "picker"
+      && (event.key === "d" || event.key === "D")
+      && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey
+      && mpActiveNoteId
+      && !isEditableElement(event.target)
+      && !state.folderPalette.open
+      && !(state.dialog && state.dialog.open)
+    ) {
+      const targetId = mpActiveNoteId;
+      mpActiveNoteId = "";
+      event.preventDefault();
+      stopOverlayEvent(event);
+      deleteNoteById(targetId, { confirm: false }).catch(() => {
+        setSaveStatus("Could not delete note", "error");
+      });
+      return;
+    }
+
     if (event.key === "Escape" && !event.ctrlKey && !event.altKey && !event.metaKey) {
       if (isEventFromOverlay(event)) return;
       if (panelPinned) return; // Panel dikunci
