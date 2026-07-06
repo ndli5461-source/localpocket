@@ -2258,8 +2258,40 @@
     sssBtn.setAttribute("data-role", "sss-btn");
     sssBtn.title = "Hantar teks terpilih ke AI sidebar (SSS)";
 
+    // SSS Search — butang toggle enable/disable (sama fungsi dengan sidebar AI)
+    const mpEditorMetaRow = mk("div", [
+      "display:flex","align-items:center","justify-content:space-between",
+      "gap:8px","flex:0 0 auto"
+    ].join(";"));
+    const sssSearchToggle = mk("button", [
+      "display:inline-flex","align-items:center","justify-content:center",
+      "gap:4px","padding:3px 10px","border-radius:999px",
+      "border:1px solid rgba(255,255,255,0.15)","background:rgba(0,0,0,0.2)",
+      "color:#555","font-size:11px","font-weight:700","cursor:pointer",
+      "outline:none","white-space:nowrap","flex:0 0 auto",
+      "transition:background 120ms ease,color 120ms ease,border-color 120ms ease"
+    ].join(";"), "🔍 SSS");
+    sssSearchToggle.type = "button";
+    sssSearchToggle.setAttribute("data-role", "sss-search-toggle");
+    sssSearchToggle.setAttribute("aria-pressed", "false");
+    sssSearchToggle.title = "Selection Search dalam nota";
+    mpEditorMetaRow.append(mpEditorMeta, sssSearchToggle);
+
+    // SSS Search — popup senarai enjin carian untuk teks terpilih dalam nota
+    const sssSearchPopup = mk("div", [
+      "position:fixed","z-index:2147483646","display:none",
+      "flex-direction:column","gap:5px",
+      "width:min(230px,calc(100vw - 20px))","max-height:min(45vh,340px)",
+      "padding:10px","border-radius:14px",
+      "border:1px solid rgba(255,255,255,0.12)",
+      "background:linear-gradient(180deg,rgba(23,26,38,0.99),rgba(13,15,23,0.99))",
+      "color:#eef2ff","font-size:12px","font-weight:600",
+      "box-shadow:0 20px 46px rgba(0,0,0,0.5)","overflow:hidden"
+    ].join(";"));
+    sssSearchPopup.setAttribute("data-role", "sss-search-popup");
+
     mpEditor.style.position = "relative";
-    mpEditor.append(mpEditorMeta, editorFrame, sssBtn);
+    mpEditor.append(mpEditorMetaRow, editorFrame, sssBtn);
 
     // Hint
     const mpHint = mk("div", [
@@ -2453,6 +2485,9 @@
     importInput.setAttribute("data-role", "import-txt-input");
     overlay.appendChild(importInput);
 
+    // SSS Search popup — anak overlay supaya position:fixed kekal atas segala panel
+    overlay.appendChild(sssSearchPopup);
+
     return overlay;
   }
 
@@ -2493,6 +2528,8 @@
     state.refs.saveStatus     = shadow.querySelector('[data-role="save-status"]');
     state.refs.mpPanelPinBtn  = shadow.querySelector('[data-role="mp-panel-pin-btn"]');
     state.refs.sssBtn         = shadow.querySelector('[data-role="sss-btn"]');
+    state.refs.sssSearchToggle = shadow.querySelector('[data-role="sss-search-toggle"]');
+    state.refs.sssSearchPopup = shadow.querySelector('[data-role="sss-search-popup"]');
     state.refs.mpAiBtn        = shadow.querySelector('[data-role="mp-ai-btn"]');
     state.refs.folderSelect   = shadow.querySelector('[data-role="folder-select"]');
     state.refs.importFileInput = shadow.querySelector('[data-role="import-txt-input"]');
@@ -2576,6 +2613,260 @@
       state.refs.trashList.addEventListener("click", handleTrashListClick);
     }
 
+    // ── SSS Search — selection search popup dalam nota ─────────────────────
+    // Sama fungsi dengan selection search di sidebar AI: bila user pilih teks
+    // dalam editor nota, popup senarai enjin carian dipaparkan. Boleh
+    // enable/disable melalui butang toggle (dikongsi dengan tetapan sidebar).
+    const SSS_DEFAULT_ENGINES = [
+      { id: "copy", type: "copy", name: "Copy to clipboard", url: "", iconUrl: "", showPopup: true, shortcut: "" },
+      { id: "google", type: "engine", name: "Google", url: "https://www.google.com/search?q=%s", iconUrl: "", showPopup: true, shortcut: "" },
+      { id: "bing", type: "engine", name: "Bing", url: "https://www.bing.com/search?q=%s", iconUrl: "", showPopup: true, shortcut: "" },
+      { id: "ddg", type: "engine", name: "DuckDuckGo", url: "https://duckduckgo.com/?q=%s", iconUrl: "", showPopup: true, shortcut: "" }
+    ];
+    let _sssSearchEnabled = true;
+    let _sssSearchText = "";
+    let _sssSearchSignature = "";
+
+    // Helper element tempatan (mk() hanya wujud dalam skop buildMarkup)
+    function sssMk(tag, css, text) {
+      const el = document.createElement(tag);
+      if (css) el.style.cssText = css;
+      if (text != null) el.textContent = text;
+      return el;
+    }
+
+    function sssSearchSettingsEnabled(settings) {
+      const s = settings && typeof settings === "object" ? settings : {};
+      const popupEnabled = s.selectionSearchPopup && typeof s.selectionSearchPopup === "object"
+        ? s.selectionSearchPopup.enabled !== false
+        : true;
+      return popupEnabled && s.selectionSearchEnabled !== false;
+    }
+
+    function applySssSearchToggleUI(enabled) {
+      const btn = state.refs.sssSearchToggle;
+      if (!btn) return;
+      btn.setAttribute("aria-pressed", enabled ? "true" : "false");
+      btn.title = enabled
+        ? "Selection Search: ON (klik untuk matikan)"
+        : "Selection Search: OFF (klik untuk hidupkan)";
+      btn.style.background = enabled ? "rgba(59,130,246,0.18)" : "rgba(0,0,0,0.2)";
+      btn.style.borderColor = enabled ? "rgba(59,130,246,0.5)" : "rgba(255,255,255,0.15)";
+      btn.style.color = enabled ? "#7ab8ff" : "#555";
+    }
+
+    function loadSssSearchState() {
+      storageGet(SETTINGS_KEY).then((data) => {
+        const settings = data && data[SETTINGS_KEY] ? data[SETTINGS_KEY] : {};
+        _sssSearchEnabled = sssSearchSettingsEnabled(settings);
+        applySssSearchToggleUI(_sssSearchEnabled);
+        if (!_sssSearchEnabled) hideSssSearchPopup();
+      }).catch(() => {
+        _sssSearchEnabled = true;
+        applySssSearchToggleUI(true);
+      });
+    }
+
+    function handleSssSearchToggle() {
+      _sssSearchEnabled = !_sssSearchEnabled;
+      applySssSearchToggleUI(_sssSearchEnabled);
+      if (!_sssSearchEnabled) hideSssSearchPopup();
+      else if (_sssSearchText) showSssSearchPopup();
+      // Simpan KEDUA-DUA flag — sama logik dengan sidebar.js supaya
+      // applySelectionSearchSettings dalam iframe AI tidak reject.
+      storageGet(SETTINGS_KEY).then((data) => {
+        const settings = data && data[SETTINGS_KEY] ? data[SETTINGS_KEY] : {};
+        settings.selectionSearchEnabled = _sssSearchEnabled;
+        if (settings.selectionSearchPopup && typeof settings.selectionSearchPopup === "object") {
+          settings.selectionSearchPopup.enabled = _sssSearchEnabled;
+        } else {
+          settings.selectionSearchPopup = { enabled: _sssSearchEnabled };
+        }
+        storageSet({ [SETTINGS_KEY]: settings }).catch(() => {});
+      });
+    }
+
+    function getSssSearchEngines() {
+      const settings = state.settings && typeof state.settings === "object" ? state.settings : {};
+      const list = Array.isArray(settings.selectionSearchEnginesList)
+        ? settings.selectionSearchEnginesList
+        : [];
+      const usable = list.filter((entry) => entry && typeof entry === "object");
+      return usable.length ? usable : SSS_DEFAULT_ENGINES;
+    }
+
+    function buildSssSearchUrl(entry, query) {
+      if (!entry) return "";
+      if (entry.type === "open-link") {
+        const raw = String(query || "").trim();
+        if (!raw) return "";
+        try {
+          if (/^https?:\/\//i.test(raw)) return new URL(raw).toString();
+          return new URL("https://" + raw).toString();
+        } catch (_err) {
+          return "";
+        }
+      }
+      if (entry.type === "engine") {
+        const rawUrl = entry.url || "";
+        if (!rawUrl) return "";
+        const encoded = encodeURIComponent(query);
+        if (/%s/i.test(rawUrl)) return rawUrl.replace(/%s/gi, encoded);
+        if (/\{searchTerms\}/i.test(rawUrl)) return rawUrl.replace(/\{searchTerms\}/gi, encoded);
+        return rawUrl + encoded;
+      }
+      return "";
+    }
+
+    function activateSssSearchEngine(entry) {
+      const query = _sssSearchText;
+      if (!entry || !query) return;
+      if (entry.type === "copy") {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(query).catch(() => {});
+        }
+        hideSssSearchPopup();
+        return;
+      }
+      const url = buildSssSearchUrl(entry, query);
+      if (url) {
+        sendRuntimeMessage({ type: "selection-search-open-url", url, active: true })
+          .catch(() => { try { window.open(url, "_blank"); } catch (_) {} });
+      }
+      hideSssSearchPopup();
+    }
+
+    function renderSssSearchPopup() {
+      const popup = state.refs.sssSearchPopup;
+      if (!popup) return;
+      const engines = getSssSearchEngines();
+      const signature = JSON.stringify(engines.map((e) => [e.id, e.name, e.type, e.iconUrl, e.showPopup, e.shortcut]));
+      if (signature === _sssSearchSignature && popup.childNodes.length) return;
+      _sssSearchSignature = signature;
+      popup.textContent = "";
+
+      const title = sssMk("div", "font-size:12px;font-weight:700;color:#fff;padding:0 2px 4px;", "SSS Nota");
+      popup.appendChild(title);
+
+      const listWrap = sssMk("div", "display:flex;flex-direction:column;gap:4px;overflow-y:auto;flex:1 1 auto;");
+      engines.forEach((entry) => {
+        if (!entry) return;
+        if (entry.type === "separator") {
+          listWrap.appendChild(sssMk("div", "height:1px;background:rgba(255,255,255,0.08);margin:3px 0;"));
+          return;
+        }
+        if (entry.type === "group") {
+          listWrap.appendChild(sssMk("div", "padding:3px 2px 1px;color:rgba(255,255,255,0.48);font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;", entry.name || "Group"));
+          return;
+        }
+        if (entry.showPopup !== true) return;
+        const btn = sssMk("button", [
+          "display:flex","align-items:center","gap:8px","width:100%",
+          "padding:8px 10px","border-radius:10px",
+          "border:1px solid rgba(255,255,255,0.06)","background:rgba(255,255,255,0.03)",
+          "color:#edf2ff","font-size:12px","font-weight:600","cursor:pointer",
+          "text-align:left","transition:background 120ms ease,border-color 120ms ease"
+        ].join(";"));
+        btn.type = "button";
+        btn.addEventListener("mouseenter", () => {
+          btn.style.background = "rgba(255,214,51,0.12)";
+          btn.style.borderColor = "rgba(255,214,51,0.24)";
+        });
+        btn.addEventListener("mouseleave", () => {
+          btn.style.background = "rgba(255,255,255,0.03)";
+          btn.style.borderColor = "rgba(255,255,255,0.06)";
+        });
+        if (entry.iconUrl) {
+          const icon = document.createElement("img");
+          icon.src = entry.iconUrl;
+          icon.alt = "";
+          icon.style.cssText = "width:16px;height:16px;border-radius:4px;object-fit:cover;flex:0 0 auto;pointer-events:none;";
+          btn.appendChild(icon);
+        } else {
+          const bullet = sssMk("span", [
+            "display:inline-flex","align-items:center","justify-content:center",
+            "width:16px","height:16px","border-radius:999px",
+            "background:rgba(255,214,51,0.16)","color:#ffe38a",
+            "font-size:10px","font-weight:700","flex:0 0 auto","pointer-events:none"
+          ].join(";"), (entry.name || "S").slice(0, 1).toUpperCase());
+          btn.appendChild(bullet);
+        }
+        const label = sssMk("span", "flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none;", entry.name || "Engine");
+        btn.appendChild(label);
+        btn.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          activateSssSearchEngine(entry);
+        });
+        listWrap.appendChild(btn);
+      });
+      popup.appendChild(listWrap);
+    }
+
+    function positionSssSearchPopup(frameX, frameY) {
+      const popup = state.refs.sssSearchPopup;
+      if (!popup) return;
+      const margin = 8;
+      let left = margin;
+      let top = margin;
+      const frame = state.refs.editorFrame;
+      const frameRect = frame ? frame.getBoundingClientRect() : null;
+      if (frameRect && Number.isFinite(frameX) && Number.isFinite(frameY)) {
+        left = frameRect.left + frameX + 12;
+        top = frameRect.top + frameY + 14;
+      } else if (frameRect) {
+        left = frameRect.right - 250;
+        top = frameRect.top + 12;
+      }
+      const width = Math.max(popup.offsetWidth || 0, 200);
+      const height = Math.max(popup.offsetHeight || 0, 120);
+      left = Math.max(margin, Math.min(left, window.innerWidth - width - margin));
+      top = Math.max(margin, Math.min(top, window.innerHeight - height - margin));
+      popup.style.left = left + "px";
+      popup.style.top = top + "px";
+    }
+
+    function showSssSearchPopup(frameX, frameY) {
+      const popup = state.refs.sssSearchPopup;
+      if (!popup || !_sssSearchEnabled || !_sssSearchText) return;
+      const settings = state.settings && typeof state.settings === "object" ? state.settings : {};
+      const popupCfg = settings.selectionSearchPopup && typeof settings.selectionSearchPopup === "object"
+        ? settings.selectionSearchPopup
+        : {};
+      const minChars = Number.isFinite(Number(popupCfg.minChars)) ? Math.max(0, Number(popupCfg.minChars)) : 0;
+      const maxChars = Number.isFinite(Number(popupCfg.maxChars)) ? Math.max(0, Number(popupCfg.maxChars)) : 0;
+      if (minChars > 0 && _sssSearchText.length < minChars) { hideSssSearchPopup(); return; }
+      if (maxChars > 0 && _sssSearchText.length > maxChars) { hideSssSearchPopup(); return; }
+      renderSssSearchPopup();
+      popup.style.display = "flex";
+      positionSssSearchPopup(frameX, frameY);
+    }
+
+    function hideSssSearchPopup() {
+      const popup = state.refs.sssSearchPopup;
+      if (popup) popup.style.display = "none";
+    }
+
+    if (state.refs.sssSearchToggle) {
+      state.refs.sssSearchToggle.addEventListener("click", (e) => {
+        e.stopPropagation();
+        handleSssSearchToggle();
+      });
+      loadSssSearchState();
+    }
+
+    // Kemas kini toggle bila settings berubah dari tempat lain (sidebar/options)
+    if (api.storage && api.storage.onChanged) {
+      api.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName !== "local" || !changes[SETTINGS_KEY]) return;
+        const next = changes[SETTINGS_KEY].newValue;
+        _sssSearchEnabled = sssSearchSettingsEnabled(next);
+        applySssSearchToggleUI(_sssSearchEnabled);
+        _sssSearchSignature = "";
+        if (!_sssSearchEnabled) hideSssSearchPopup();
+      });
+    }
+
     // SSS — listen untuk selection dalam editor iframe
     window.addEventListener("message", (evt) => {
       if (!state.open || state.panelMode !== "editor") return;
@@ -2584,13 +2875,21 @@
       if (d.type === "lp-notes-selection" || d.type === "lp-notes-text-selected") {
         const text = d.text ? String(d.text).trim() : "";
         const sssBtn = state.refs.sssBtn;
-        if (!sssBtn) return;
-        if (text.length > 0) {
-          sssBtn.style.display = "inline-flex";
-          sssBtn._selectedText = text;
+        if (sssBtn) {
+          if (text.length > 0) {
+            sssBtn.style.display = "inline-flex";
+            sssBtn._selectedText = text;
+          } else {
+            sssBtn.style.display = "none";
+            sssBtn._selectedText = "";
+          }
+        }
+        // SSS Search popup — papar/sembunyi ikut pilihan teks & toggle
+        _sssSearchText = text;
+        if (text.length > 0 && _sssSearchEnabled) {
+          showSssSearchPopup(Number(d.x), Number(d.y));
         } else {
-          sssBtn.style.display = "none";
-          sssBtn._selectedText = "";
+          hideSssSearchPopup();
         }
       }
     });
@@ -2990,6 +3289,8 @@
     // List vs editor
     if (r.mpList)   r.mpList.style.display   = inEditor ? "none" : "flex";
     if (r.mpEditor) r.mpEditor.style.display  = inEditor ? "flex" : "none";
+    // SSS Search popup hanya relevan dalam mod editor
+    if (!inEditor && r.sssSearchPopup) r.sssSearchPopup.style.display = "none";
     if (r.mpHint) {
       if (inEditor) {
         r.mpHint.style.display = "none";

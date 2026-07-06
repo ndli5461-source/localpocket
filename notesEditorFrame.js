@@ -367,6 +367,17 @@
   // SSS — hantar teks terpilih ke parent bila user select dalam editor
   let _sssDebounceTimer = null;
   let _sssLastText = "";
+  let _sssLastPointer = { x: 0, y: 0 };
+
+  // Jejak posisi pointer terakhir supaya parent boleh letakkan popup SSS
+  // berhampiran lokasi pilihan teks (koordinat relatif kepada iframe ini).
+  document.addEventListener("mousemove", (e) => {
+    _sssLastPointer = { x: e.clientX, y: e.clientY };
+  }, { passive: true });
+  document.addEventListener("touchend", (e) => {
+    const touch = e.changedTouches && e.changedTouches[0];
+    if (touch) _sssLastPointer = { x: touch.clientX, y: touch.clientY };
+  }, { passive: true });
 
   function getFieldSelection(el) {
     if (!el || typeof el.selectionStart !== "number" || typeof el.selectionEnd !== "number") return "";
@@ -396,7 +407,12 @@
     const text = readSelectedText();
     if (text === _sssLastText) return;
     _sssLastText = text;
-    emitToParent({ type: "lp-notes-selection", text });
+    emitToParent({
+      type: "lp-notes-selection",
+      text,
+      x: _sssLastPointer.x,
+      y: _sssLastPointer.y
+    });
   }
 
   function scheduleEmitSelection(delay) {
