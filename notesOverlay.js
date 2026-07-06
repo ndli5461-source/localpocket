@@ -2441,7 +2441,7 @@
     trashLayer.appendChild(trashCard);
     overlay.appendChild(trashLayer);
 
-    // ── Folder palette (move note to category) ───────────────────────────────
+    // ── Folder palette (move note to category) ──────────────────────────────���
     const palLayer = mk("div", [
       "position:fixed","inset:0","z-index:2147483649",
       "display:none","pointer-events:none"
@@ -3120,7 +3120,7 @@
     }
   }
 
-  // ── Left panel focus helpers ─────────────────────────────────────────────
+  // ── Left panel focus helpers ──────────────────────���──────────────────────
   function lpFocus() {
     if (lpFocused) return;
     lpFocused = true;
@@ -3389,7 +3389,10 @@
     const pageNotes = pager.visibleRows;
     const drawerSelectedNoteId = getDrawerSelectedNoteId(pageNotes);
 
-    pageNotes.forEach((note) => {
+    const pageStartIndex = pager.activePage * pager.pageSize;
+
+    pageNotes.forEach((note, i) => {
+      const noteNumber = pageStartIndex + i + 1;
       const isActive = note.id === state.ui.activeNoteId;
       const isKb = note.id === mpActiveNoteId && !isActive;
       const wordCount = countWords(note.content);
@@ -3424,7 +3427,20 @@
       btn.style.touchAction = "pan-y";
       btn.style.userSelect = "none";
 
+      const numSpan = document.createElement("span");
+      numSpan.style.cssText = [
+        "flex:0 0 auto",
+        "min-width:18px",
+        "text-align:right",
+        "font-size:10px",
+        "font-variant-numeric:tabular-nums",
+        "color:" + ROW_MUTED,
+        "opacity:" + (isActive ? "0.9" : "0.6")
+      ].join(";");
+      numSpan.textContent = noteNumber + ".";
+
       btn.append(
+        numSpan,
         makeDotSpan(palette.dot),
         makeLabelSpan(getNoteTitle(note)),
         makeCountSpan(wordCount + "w", isActive)
