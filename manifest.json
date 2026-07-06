@@ -1,0 +1,327 @@
+{
+  "manifest_version": 2,
+  "name": "Local Pocket Reader",
+  "version": "2.5.4",
+  "description": "Save articles locally and read them in a clean reader view.",
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "activeTab",
+    "tabs",
+    "search",
+    "contextMenus",
+    "notifications",
+    "nativeMessaging",
+    "alarms",
+    "webRequest",
+    "webRequestBlocking",
+    "cookies",
+    "downloads",
+    "identity",
+    "webNavigation",
+    "<all_urls>"
+  ],
+  "optional_permissions": [
+    "file:///*"
+  ],
+  "background": {
+    "scripts": [
+      "supabase-config.js",
+      "supabase-js.js",
+      "supabase-google-auth.js",
+      "icons/default-custom-icons-2.js",
+      "settings.js",
+      "core/polyfillsCore.js",
+      "core/loggerCore.js",
+      "core/validationCore.js",
+      "core/errorHandlerCore.js",
+      "core/stateManagementCore.js",
+      "core/commonUtilsCore.js",
+      "core/storageManagerCore.js",
+      "core/eventManagerCore.js",
+      "core/urlIndexingCore.js",
+      "core/tabManagerCore.js",
+      "core/notificationCore.js",
+      "core/dedupeCore.js",
+      "core/summaryPromptCore.js",
+      "core/categoryAutoRuleCore.js",
+      "core/itemsMutationCore.js",
+      "core/itemsIndexedDbCore.js",
+      "core/supabaseAuthCore.js",
+      "core/supabaseSyncCore.js",
+      "core/supabaseBackupCore.js",
+      "background.js"
+    ]
+  },
+  "browser_action": {
+    "default_title": "Save to Local Pocket",
+    "default_icon": {
+      "16": "icons/icon-default-16.png",
+      "32": "icons/icon-default-32.png",
+      "48": "icons/icon48.png",
+      "96": "icons/icon-96.png"
+    }
+  },
+  "page_action": {
+    "default_title": "Save to Local Pocket",
+    "default_icon": {
+      "16": "icons/icon-default-16.png",
+      "32": "icons/icon-default-32.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*",
+        "file:///*"
+      ],
+      "js": [
+        "shortcutInterceptor.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*",
+        "file:///*"
+      ],
+      "js": [
+        "gesture-matcher.js",
+        "floatingButton.js",
+        "floatingButtonFull.js",
+        "pomodoroOverlay.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "*://chatgpt.com/*",
+        "*://*.chatgpt.com/*",
+        "*://chat.openai.com/*"
+      ],
+      "js": [
+        "core/aiContentScriptShared.js",
+        "contentScriptSidebarUi.js",
+        "contentScriptGpt.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "*://claude.ai/*",
+        "*://*.claude.ai/*"
+      ],
+      "js": [
+        "core/aiContentScriptShared.js",
+        "contentScriptSidebarUi.js",
+        "contentScriptClaude.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "*://gemini.google.com/*",
+        "*://*.gemini.google.com/*",
+        "*://google.com/*",
+        "*://*.google.com/*",
+        "*://www.perplexity.ai/*",
+        "*://copilot.microsoft.com/*",
+        "*://grok.com/*",
+        "*://*.grok.com/*",
+        "*://chat.deepseek.com/*",
+        "*://*.deepseek.com/*",
+        "*://poe.com/*",
+        "*://*.poe.com/*",
+        "*://chat.mistral.ai/*"
+      ],
+      "js": [
+        "core/aiContentScriptShared.js",
+        "contentScriptSidebarUi.js",
+        "contentScriptSidebarAi.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+  "web_accessible_resources": [
+    "icons/*",
+    "notesEditorFrame.html",
+    "notesEditorFrame.js",
+    "sidebar.html",
+    "sidebar.js",
+    "overlay-wrapper.html",
+    "overlay-wrapper.js",
+    "contentScriptSidebarUi.js"
+  ],
+  "commands": {
+    "save-to-local-pocket": {
+      "suggested_key": {
+        "default": "Alt+Shift+P"
+      },
+      "description": "Add or archive current page in Local Pocket"
+    },
+    "save-current-tab-favorite": {
+      "suggested_key": {
+        "default": "Alt+Shift+F"
+      },
+      "description": "Save current page to Favorite"
+    },
+    "open-first-item": {
+      "suggested_key": {
+        "default": "Alt+Shift+G"
+      },
+      "description": "Open the first item in Local Pocket list"
+    },
+    "open-random-item": {
+      "suggested_key": {
+        "default": "Alt+Shift+U"
+      },
+      "description": "Open a random item in Local Pocket list"
+    },
+    "toggle-random-across-all": {
+      "suggested_key": {
+        "default": "Alt+Shift+Z"
+      },
+      "description": "Toggle: random link across all categories (ignore category filter)"
+    },
+    "cycle-category": {
+      "suggested_key": {
+        "default": "Alt+Shift+Right"
+      },
+      "description": "Switch to next category"
+    },
+    "cycle-category-prev": {
+      "suggested_key": {
+        "default": "Alt+Shift+Left"
+      },
+      "description": "Switch to previous category"
+    },
+    "open-category-picker": {
+      "suggested_key": {
+        "default": "Alt+A"
+      },
+      "description": "Toggle category picker"
+    },
+    "picker-next-item": {
+      "suggested_key": {
+        "default": "Alt+Shift+N"
+      },
+      "description": "Global: next link"
+    },
+    "picker-random-item": {
+      "suggested_key": {
+        "default": "Alt+Shift+R"
+      },
+      "description": "Global: open random link"
+    },
+    "picker-save-all-tabs": {
+      "suggested_key": {
+        "default": "Alt+Shift+V"
+      },
+      "description": "Global: save all tabs"
+    },
+    "picker-open-settings": {
+      "suggested_key": {
+        "default": "Alt+R"
+      },
+      "description": "Global: open settings"
+    },
+    "picker-new-category": {
+      "suggested_key": {
+        "default": "Alt+Shift+C"
+      },
+      "description": "Category picker: create category"
+    },
+    "picker-delete-category": {
+      "suggested_key": {
+        "default": "Alt+Shift+D"
+      },
+      "description": "Category picker: delete category"
+    },
+    "picker-toggle-favorites": {
+      "suggested_key": {
+        "default": "Alt+F"
+      },
+      "description": "Category picker: toggle favorites filter"
+    },
+    "picker-youtube-summary": {
+      "description": "Summary in ChatGPT (global or picker)",
+      "suggested_key": {
+        "default": "Alt+Shift+S"
+      }
+    },
+    "copy-sidebar-selection-debug-log": {
+      "description": "Copy sidebar selection debug log",
+      "suggested_key": {
+        "default": "Alt+Shift+L"
+      }
+    },
+    "toggle-notes-overlay": {
+      "description": "Toggle Local Pocket notes overlay",
+      "suggested_key": {
+        "default": "Alt+Shift+O"
+      }
+    },
+    "open-ai-sidebar": {
+      "description": "Toggle Local Pocket AI sidebar (open/close)",
+      "suggested_key": {
+        "default": "Alt+Shift+I"
+      }
+    },
+    "toggle-ai-overlay": {
+      "description": "Toggle Local Pocket AI overlay (floating window)",
+      "suggested_key": {
+        "default": "Alt+Shift+A"
+      }
+    },
+    "_execute_sidebar_action": {
+      "description": "Toggle Firefox native Local Pocket sidebar"
+    },
+    "open-firefox-native-ai-sidebar": {
+      "suggested_key": {
+        "default": "Ctrl+Alt+X"
+      },
+      "description": "Toggle Firefox Native AI Sidebar (Ctrl+Alt+X)"
+    },
+    "toggle-pomodoro-overlay": {
+      "description": "Toggle Local Pocket Pomodoro Timer overlay",
+      "suggested_key": {
+        "default": "Alt+Shift+T"
+      }
+    }
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "icons": {
+    "48": "icons/icon48.png",
+    "96": "icons/icon-96.png"
+  },
+  "sidebar_action": {
+    "default_title": "Local Pocket Reader",
+    "default_panel": "sidebar.html",
+    "open_at_install": false
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "organize-pocket-local@example.com",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": [
+          "browsingActivity",
+          "websiteContent"
+        ]
+      }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
+    }
+  }
+}

@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="ms">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Local Pocket — Tetapan Gesture</title>
+  <link rel="stylesheet" href="styles/options.css" />
+  <style>
+    /* ── Toggle switch ── */
+    .toggle-wrap { display:flex; align-items:center; gap:12px; }
+    .toggle-switch { position:relative; display:inline-block; width:44px; height:24px; flex-shrink:0; }
+    .toggle-switch input { opacity:0; width:0; height:0; }
+    .toggle-slider { position:absolute; cursor:pointer; inset:0; background:rgba(255,255,255,0.15); border-radius:24px; transition:background .2s; }
+    .toggle-slider::before { content:""; position:absolute; height:18px; width:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:transform .2s; }
+    .toggle-switch input:checked + .toggle-slider { background:var(--accent,#e94560); }
+    .toggle-switch input:checked + .toggle-slider::before { transform:translateX(20px); }
+
+    /* ── Gesture card list ── */
+    .gest-list { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
+    .gest-card {
+      display:flex; align-items:center; gap:14px;
+      background:rgba(255,255,255,0.03); border:1px solid var(--border);
+      border-radius:10px; padding:10px 14px;
+      transition: background .15s, border-color .15s;
+      cursor:default;
+    }
+    .gest-card:hover { background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,.15); }
+    .gest-card-preview {
+      width:64px; height:52px; flex-shrink:0;
+      background:#0d0d1a; border-radius:8px; overflow:hidden;
+      display:flex; align-items:center; justify-content:center;
+      border:1px solid rgba(255,255,255,.06);
+    }
+    .gest-card-preview svg { display:block; width:100%; height:100%; }
+    .gest-card-body { flex:1; min-width:0; }
+    .gest-card-name { font-weight:600; font-size:.92rem; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .gest-card-dir  { font-size:1.1rem; letter-spacing:4px; color:var(--accent); margin:.15em 0; }
+    .gest-card-act  { font-size:.78rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .gest-card-btns { display:flex; gap:6px; flex-shrink:0; }
+
+    /* ── Editor panel ── */
+    .gest-editor { display:none; border:1px solid var(--accent); border-radius:12px; padding:16px; background:rgba(233,69,96,.04); margin-top:12px; }
+    .gest-editor.open { display:block; }
+    .gest-editor-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
+    .gest-editor-row label { font-size:.85rem; color:var(--muted); min-width:70px; }
+    .gest-editor-row select,
+    .gest-editor-row input[type=text] {
+      flex:1; min-width:140px; padding:6px 10px;
+      border:1px solid var(--border); border-radius:6px;
+      background:rgba(0,0,0,.25); color:var(--ink); font-size:.88rem;
+    }
+    .gest-editor-row select:focus,
+    .gest-editor-row input:focus { border-color:var(--accent); outline:none; }
+
+    /* ── Canvas ── */
+    .gest-canvas-wrap {
+      position:relative; width:100%; max-width:640px; aspect-ratio:16/9;
+      border:2px dashed var(--border); border-radius:12px;
+      background:#111118; cursor:crosshair; margin:10px auto;
+      overflow:hidden;
+    }
+    .gest-canvas-wrap canvas { width:100%; height:100%; display:block; touch-action:none; }
+    .gest-canvas-hint {
+      position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+      color:rgba(255,255,255,.25); font-size:14px; text-align:center; pointer-events:none;
+      line-height:1.8;
+    }
+    .gest-editor-btns { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:8px; }
+    .gest-status { color:var(--muted); font-size:.83rem; text-align:center; margin-top:6px; min-height:1.4em; }
+
+    /* ── Mapping rows ── */
+    .mapping-row {
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+      background:rgba(255,255,255,.03); border:1px solid var(--border);
+      border-radius:8px; padding:10px 14px; margin-bottom:6px;
+    }
+    .mapping-row .dir-label { font-size:1.1rem; min-width:32px; text-align:center; flex-shrink:0; color:var(--ink); }
+    .mapping-row .dir-text  { font-size:.82rem; color:var(--muted); min-width:120px; }
+    .mapping-row select {
+      flex:1; min-width:130px; padding:5px 8px;
+      border:1px solid var(--border); border-radius:6px;
+      background:rgba(0,0,0,.3); color:var(--ink); font-size:.84rem; cursor:pointer;
+    }
+
+    /* ── Empty state ── */
+    .gest-empty {
+      text-align:center; padding:24px; color:var(--muted);
+      border:2px dashed var(--border); border-radius:10px; font-size:.88rem;
+    }
+
+    /* ── Preset chips ── */
+    .preset-grid { display:flex; flex-wrap:wrap; gap:8px; }
+    .preset-chip {
+      display:flex; align-items:center; gap:6px;
+      padding:5px 12px; border-radius:20px;
+      border:1px solid var(--border); background:rgba(255,255,255,.05);
+      font-size:.82rem; cursor:pointer; color:var(--ink); transition:all .15s;
+    }
+    .preset-chip:hover:not([disabled]) { background:rgba(233,69,96,.15); border-color:var(--accent); }
+    .preset-chip[disabled] { opacity:.35; cursor:default; }
+    .preset-chip .pdir { font-size:1rem; letter-spacing:2px; }
+
+    /* ── Mode selector ── */
+    .gest-mode-wrap { display:flex; gap:8px; flex-wrap:wrap; }
+    .gest-mode-btn {
+      display:flex; align-items:center; gap:6px;
+      padding:6px 14px; border-radius:20px; cursor:pointer;
+      border:1.5px solid var(--border); background:rgba(255,255,255,.04);
+      font-size:.84rem; color:var(--ink); transition:all .15s;
+      user-select:none;
+    }
+    .gest-mode-btn:hover { border-color:rgba(255,255,255,.3); background:rgba(255,255,255,.08); }
+    .gest-mode-btn input[type=radio] { display:none; }
+    .gest-mode-btn:has(input:checked) {
+      border-color:var(--accent); background:rgba(233,69,96,.12); color:var(--accent);
+    }
+    /* Bentuk bebas mod — ungu */
+    .gest-mode-btn:has(#gestModeShape:checked) {
+      border-color:#a78bfa; background:rgba(167,139,250,.12); color:#a78bfa;
+    }
+    /* Exclusion list */
+    .exclusion-item {
+      display:flex; align-items:center; gap:8px;
+      background:rgba(255,255,255,.03); border:1px solid var(--border);
+      border-radius:8px; padding:7px 12px; font-size:.83rem; color:var(--ink);
+    }
+    .exclusion-item span { flex:1; font-family:monospace; word-break:break-all; }
+    .exclusion-item button { flex-shrink:0; }
+
+    /* ── SVG preview — always visible, glow on hover ── */
+    .gest-card-preview svg path { stroke-dashoffset: 0; filter: none; transition: filter .2s, stroke-width .2s; }
+    .gest-card:hover .gest-card-preview svg path {
+      filter: drop-shadow(0 0 4px var(--accent));
+      stroke-width: 3.5;
+    }
+
+    /* ── Canvas shake animation (no match) ── */
+    @keyframes gest-shake {
+      0%,100% { transform: translateX(0); }
+      20%     { transform: translateX(-6px); }
+      40%     { transform: translateX(6px); }
+      60%     { transform: translateX(-4px); }
+      80%     { transform: translateX(4px); }
+    }
+    .gest-canvas-shake { animation: gest-shake 0.35s ease-out; }
+
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <header class="hero">
+    <div class="logo"></div>
+    <div>
+      <h1>Mouse Gesture</h1>
+      <p>Lukis gesture tetikus untuk trigger fungsi Local Pocket — sama seperti Gesturefy.</p>
+    </div>
+  </header>
+
+  <!-- ── Mouse Gesture ── -->
+  <section class="panel">
+    <h2>Mouse Gesture</h2>
+    <p class="hint">Tahan butang tetikus, lukis corak, lepaskan — tindakan akan dijalankan.</p>
+
+    <div id="gestureList" class="gest-list"></div>
+    <div id="gestureEmpty" class="gest-empty" style="display:none;">
+      Tiada gesture. Klik "Tambah Gesture" atau pilih preset di bawah.
+    </div>
+
+    <!-- Editor -->
+    <div id="gestureEditor" class="gest-editor">
+      <div class="gest-editor-row">
+        <label for="gestEditAction">Tindakan</label>
+        <select id="gestEditAction"></select>
+      </div>
+      <div class="gest-editor-row">
+        <label for="gestEditName">Nama</label>
+        <input id="gestEditName" type="text" placeholder="Nama gesture" maxlength="60" />
+      </div>
+      <div class="gest-editor-row">
+        <label for="gestEditCustomLabel" style="font-size:.85rem;color:var(--muted);min-width:70px;">Label overlay</label>
+        <input id="gestEditCustomLabel" type="text" placeholder="Teks dalam command overlay (kosong = guna Nama)" maxlength="80"
+          style="flex:1;min-width:140px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:rgba(0,0,0,.25);color:var(--ink);font-size:.88rem;" />
+      </div>
+
+      <!-- Mode Selector -->
+      <div class="gest-editor-row" style="margin-bottom:6px;">
+        <label style="font-size:.85rem;color:var(--muted);min-width:70px;">Mod</label>
+        <div class="gest-mode-wrap">
+          <label class="gest-mode-btn">
+            <input type="radio" name="gestMode" id="gestModeDir" value="dir" checked />
+            <span>↓→ Arah</span>
+          </label>
+          <label class="gest-mode-btn">
+            <input type="radio" name="gestMode" id="gestModeShape" value="shape" />
+            <span>✦ Bentuk Bebas</span>
+          </label>
+        </div>
+      </div>
+      <p class="hint" id="gestModeHint" style="margin:0 0 8px;font-size:.78rem;">
+        <span id="gestModeDirHint"><b>Mod Arah</b> — gesture mudah seperti ↓ ← → ↑ atau kombinasi 2–3 arah.</span>
+        <span id="gestModeShapeHint" style="display:none;"><b>Mod Bentuk Bebas</b> — lukis sebarang bentuk: M, C, U, V, Z, spiral, dll. Sistem mengenali bentuk, bukan arah.</span>
+      </p>
+
+      <!-- Threshold (hanya bentuk bebas) -->
+      <div class="gest-editor-row" id="gestShapeThreshRow" style="display:none;">
+        <label style="font-size:.85rem;color:var(--muted);min-width:70px;">Toleransi</label>
+        <input type="range" id="gestShapeThreshSlider" min="60" max="97" step="1" value="80"
+          style="flex:1;accent-color:#a78bfa;" />
+        <span id="gestShapeThreshLabel" style="min-width:36px;text-align:right;font-size:.85rem;color:var(--ink);">80%</span>
+      </div>
+      <p class="hint" id="gestShapeThreshHint" style="display:none;margin:0 0 8px;font-size:.75rem;color:var(--muted);">
+        Toleransi rendah = kenal pasti lebih ketat. Tinggi = lebih longgar (boleh tersilap kenal).
+      </p>
+
+      <div class="gest-canvas-wrap" id="gestCanvasWrap">
+        <canvas id="gestCanvas"></canvas>
+        <div class="gest-canvas-hint" id="gestCanvasHint">
+          ✦ Tahan &amp; lukis gesture di sini ✦<br>
+          <span style="font-size:12px;opacity:.7;">Lepaskan untuk selesai</span>
+        </div>
+      </div>
+
+      <div class="gest-editor-btns">
+        <button id="gestClearBtn"  type="button" class="ghost">🗑 Kosongkan</button>
+        <button id="gestTestBtn"   type="button" class="ghost" disabled>🔍 Uji</button>
+        <button id="gestSaveBtn"   type="button" class="primary" disabled>💾 Simpan</button>
+        <button id="gestCancelBtn" type="button" class="ghost">✕ Batal</button>
+      </div>
+      <div id="gestStatus" class="gest-status"></div>
+    </div>
+
+    <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+      <button id="gestAddBtn" type="button" class="ghost">+ Tambah Gesture</button>
+      <button id="gestResetBtn" type="button" class="ghost" style="color:var(--muted);">↺ Reset ke Default</button>
+      <button id="gestUndoBtn" type="button" class="ghost" style="color:var(--muted);" disabled>↩ Undo</button>
+      <button id="gestExportBtn" type="button" class="ghost">⬆ Eksport</button>
+      <button id="gestImportBtn" type="button" class="ghost">⬇ Import</button>
+      <input id="gestImportFile" type="file" accept=".json,application/json" hidden />
+    </div>
+  </section>
+
+  <!-- ── Tetapan Global ── -->
+  <section class="panel">
+    <h2>Tetapan Global</h2>
+
+    <div class="row toggle-wrap">
+      <label style="font-weight:600;color:var(--ink);">Aktifkan Gesture</label>
+      <label class="toggle-switch" style="margin-left:auto;">
+        <input type="checkbox" id="gestureEnabledToggle" />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div class="row" style="margin-top:10px;">
+      <label for="gestureMouseButton">Butang tetikus</label>
+      <select id="gestureMouseButton">
+        <option value="right">Kanan (disyorkan)</option>
+        <option value="left">Kiri</option>
+        <option value="middle">Tengah</option>
+        <option value="both">Kiri + Kanan serentak</option>
+      </select>
+    </div>
+
+    <div class="row" style="margin-top:8px;">
+      <label for="gestureDistanceThreshold">Jarak minimum (px)</label>
+      <input type="range" id="gestureDistanceThreshold" min="5" max="50" step="1" value="5"
+        style="flex:1;accent-color:#e94560;" />
+      <span id="gestureDistanceLabel" style="min-width:36px;text-align:right;font-size:.85rem;color:var(--ink);">5px</span>
+    </div>
+
+    <div class="row" style="margin-top:8px;">
+      <label for="gestureTraceColor">Warna trace</label>
+      <input type="color" id="gestureTraceColor" value="#e94560"
+        style="width:36px;height:28px;border:1px solid var(--border);border-radius:6px;background:none;cursor:pointer;padding:2px;" />
+    </div>
+
+    <div class="row" style="margin-top:8px;">
+      <label for="gestureTraceWidth">Lebar trace</label>
+      <input type="range" id="gestureTraceWidth" min="1" max="12" step="1" value="3"
+        style="flex:1;accent-color:#e94560;" />
+      <span id="gestureTraceWidthLabel" style="min-width:24px;text-align:right;font-size:.85rem;color:var(--ink);">3</span>
+    </div>
+
+    <div class="row toggle-wrap" style="margin-top:8px;">
+      <label>Timeout gesture</label>
+      <label class="toggle-switch" style="margin-left:auto;">
+        <input type="checkbox" id="gestureTimeoutToggle" />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="row" id="gestureTimeoutRow" style="margin-top:6px;display:none;">
+      <label for="gestureTimeoutDuration">Tempoh (saat)</label>
+      <input type="range" id="gestureTimeoutDuration" min="1" max="10" step="1" value="2"
+        style="flex:1;accent-color:#e94560;" />
+      <span id="gestureTimeoutLabel" style="min-width:24px;text-align:right;font-size:.85rem;color:var(--ink);">2s</span>
+    </div>
+    <div class="row" style="margin-top:8px;">
+      <label for="gestureSuppressionKey">Kekunci disable</label>
+      <select id="gestureSuppressionKey" style="flex:1;min-width:130px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:rgba(0,0,0,.25);color:var(--ink);">
+        <option value="">Tiada (sentiasa aktif)</option>
+        <option value="shiftKey">Shift</option>
+        <option value="ctrlKey">Ctrl</option>
+        <option value="altKey">Alt</option>
+      </select>
+    </div>
+
+    <!-- Trace lineGrowth toggle -->
+    <div class="row toggle-wrap" style="margin-top:8px;">
+      <label>Trace tumbuh (growing line)</label>
+      <label class="toggle-switch" style="margin-left:auto;">
+        <input type="checkbox" id="gestureTraceLineGrowth" checked />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <p class="hint" style="margin-top:10px;">
+      <strong>Cara guna:</strong> Tahan butang tetikus yang dipilih, lukis corak, kemudian lepaskan.
+      Gesture dijalankan apabila butang dilepaskan.
+    </p>
+  </section>
+
+  <!-- ── Algoritma Pencocokan ── -->
+  <section class="panel">
+    <h2>Algoritma Pencocokan</h2>
+    <p class="hint" style="margin-bottom:10px;">Kawalan bagaimana gesture dipadankan dengan template tersimpan.</p>
+
+    <div class="row" style="margin-top:4px;">
+      <label for="gestureMatchingAlgorithm">Algoritma</label>
+      <select id="gestureMatchingAlgorithm" style="flex:1;min-width:160px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:rgba(0,0,0,.25);color:var(--ink);">
+        <option value="combined">Combined (DTW + Proportion) — disyorkan</option>
+        <option value="strict">Strict (Proportion sahaja)</option>
+        <option value="shape-independent">Shape-Independent (DTW sahaja)</option>
+      </select>
+    </div>
+    <p class="hint" style="margin-top:4px;font-size:.78rem;">
+      <b>Combined</b> paling toleran — sesuai untuk penggunaan harian. <b>Strict</b> memerlukan gesture yang lebih tepat.
+    </p>
+
+    <div class="row" style="margin-top:10px;">
+      <label for="gestureDeviationTolerance">Toleransi sisihan</label>
+      <input type="range" id="gestureDeviationTolerance" min="3" max="80" step="1" value="25"
+        style="flex:1;accent-color:#e94560;" />
+      <span id="gestureDeviationLabel" style="min-width:36px;text-align:right;font-size:.85rem;color:var(--ink);">0.25</span>
+    </div>
+    <p class="hint" style="margin-top:2px;font-size:.78rem;">Rendah = lebih ketat. Tinggi = lebih longgar (Default: 0.25).</p>
+
+    <div class="row" style="margin-top:10px;">
+      <label for="gestureDifferenceThreshold">Sensitiviti arah</label>
+      <input type="range" id="gestureDifferenceThreshold" min="5" max="150" step="1" value="12"
+        style="flex:1;accent-color:#e94560;" />
+      <span id="gestureDiffThreshLabel" style="min-width:36px;text-align:right;font-size:.85rem;color:var(--ink);">0.12</span>
+    </div>
+    <p class="hint" style="margin-top:2px;font-size:.78rem;">Rendah = lebih sensitif terhadap perubahan arah (Gesturefy default: 0.12 rad ≈ 7°). Lama: 0.5 rad ≈ 28°.</p>
+  </section>
+
+  <!-- ── Command Label ── -->
+  <section class="panel">
+    <h2>Label Arahan (Command Label)</h2>
+    <p class="hint" style="margin-bottom:10px;">Kustomisasi teks nama gesture yang dipaparkan semasa melukis.</p>
+
+    <div class="row" style="margin-top:4px;">
+      <label for="gestureCommandFontSize">Saiz teks</label>
+      <input id="gestureCommandFontSize" type="text" value="2.5vh" maxlength="20"
+        style="flex:1;min-width:80px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:rgba(0,0,0,.25);color:var(--ink);font-size:.88rem;"
+        placeholder="cth: 2.5vh, 18px, 1.2em" />
+    </div>
+
+    <div class="row" style="margin-top:8px;">
+      <label for="gestureCommandFontColor">Warna teks</label>
+      <input type="color" id="gestureCommandFontColor" value="#ffffff"
+        style="width:36px;height:28px;border:1px solid var(--border);border-radius:6px;background:none;cursor:pointer;padding:2px;" />
+    </div>
+
+    <div class="row" style="margin-top:8px;">
+      <label for="gestureCommandBgColor">Warna latar</label>
+      <input type="color" id="gestureCommandBgColor" value="#000000"
+        style="width:36px;height:28px;border:1px solid var(--border);border-radius:6px;background:none;cursor:pointer;padding:2px;" />
+      <span style="font-size:.78rem;color:var(--muted);margin-left:8px;">(tanpa kelegapan)</span>
+    </div>
+
+    <div class="row" style="margin-top:8px;">
+      <label for="gestureCommandBgOpacity">Kelegapan latar (%)</label>
+      <input type="range" id="gestureCommandBgOpacity" min="0" max="100" step="1" value="72"
+        style="flex:1;accent-color:#e94560;" />
+      <span id="gestureCmdBgOpacityLabel" style="min-width:36px;text-align:right;font-size:.85rem;color:var(--ink);">72%</span>
+    </div>
+
+    <div class="row" style="margin-top:10px;">
+      <label for="gestureCommandPositionX">Posisi mendatar (%)</label>
+      <input type="range" id="gestureCommandPositionX" min="0" max="100" step="1" value="50"
+        style="flex:1;accent-color:#e94560;" />
+      <span id="gestureCmdPosXLabel" style="min-width:36px;text-align:right;font-size:.85rem;color:var(--ink);">50%</span>
+    </div>
+
+    <div class="row" style="margin-top:8px;">
+      <label for="gestureCommandPositionY">Posisi menegak (%)</label>
+      <input type="range" id="gestureCommandPositionY" min="0" max="100" step="1" value="92"
+        style="flex:1;accent-color:#e94560;" />
+      <span id="gestureCmdPosYLabel" style="min-width:36px;text-align:right;font-size:.85rem;color:var(--ink);">92%</span>
+    </div>
+    <p class="hint" style="margin-top:4px;font-size:.78rem;">0% = kiri/atas, 50% = tengah, 100% = kanan/bawah. Default: 50% / 92% (bawah tengah).</p>
+  </section>
+
+  <!-- ── Exclusions (Per-Site Disable) ── -->
+  <section class="panel">
+    <h2>Laman Dikecualikan</h2>
+    <p class="hint" style="margin-bottom:10px;">Gesture akan <b>dilumpuhkan</b> pada laman yang disenaraikan di sini. Guna wildcard <code>*</code> (cth: <code>*://maps.google.com/*</code>).</p>
+    <div id="gestureExclusionList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <input id="gestureExclusionInput" type="text" placeholder="cth: *://figma.com/* atau *://maps.google.com/*"
+        style="flex:1;min-width:200px;padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:rgba(0,0,0,.25);color:var(--ink);font-size:.85rem;" />
+      <button id="gestureExclusionAddBtn" type="button" class="ghost" style="white-space:nowrap;">+ Tambah</button>
+    </div>
+    <p class="hint" style="margin-top:8px;font-size:.78rem;">URL semasa: <code id="gestureCurrentUrl" style="color:var(--accent);"></code>
+      <button id="gestureExcludeCurrentBtn" type="button" class="ghost" style="margin-left:8px;font-size:.78rem;padding:2px 8px;">Kecualikan Laman Ini</button>
+    </p>
+  </section>
+
+  <!-- ── Preset ── -->
+  <section class="panel">
+    <h2>Preset Gesture</h2>
+    <p class="hint" style="margin-bottom:10px;">Klik preset untuk terus tambah tanpa perlu lukis.</p>
+    <div id="presetGrid" class="preset-grid"></div>
+  </section>
+
+  <!-- ── Balik ── -->
+  <section class="panel actions">
+    <button id="backBtn" class="ghost">← Kembali ke Tetapan Utama</button>
+    <div id="saveStatus" class="hint"></div>
+  </section>
+
+</div>
+
+<script src="icons/default-custom-icons-1.js"></script>
+<script src="icons/default-custom-icons-2.js"></script>
+<script src="settings.js"></script>
+<script src="gesture-matcher.js"></script>
+<script src="gesture-settings.js"></script>
+</html>

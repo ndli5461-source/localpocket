@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Local Pocket Native Helper Setup</title>
+    <link rel="stylesheet" href="styles/options.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header class="hero">
+        <div class="logo"></div>
+        <div>
+          <h1>Native F6 Helper Setup</h1>
+          <p>Pasang helper Windows untuk membolehkan Local Pocket menghantar F6 sebenar ke AI sidebar.</p>
+        </div>
+      </header>
+
+      <section class="panel">
+        <h2>Status</h2>
+        <div id="nativeHelperStatus" class="hint">Checking native helper...</div>
+      </section>
+
+      <section class="panel">
+        <h2>Manual install</h2>
+        <div class="hint">
+          Untuk build AMO, native helper perlu dipasang secara berasingan di Windows. Add-on ini hanya akan mengesan dan menggunakan helper yang sudah dipasang di luar add-on.
+        </div>
+        <div id="nativeHelperManualHint" class="hint">
+          Selepas helper dipasang secara manual, kembali ke halaman ini dan klik Verify helper.
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>After install</h2>
+        <div class="row">
+          <label>Verify connection</label>
+          <button id="verifyNativeHelper" type="button" class="ghost">
+            Verify helper
+          </button>
+        </div>
+        <div class="row">
+          <label>Back to options</label>
+          <button id="openMainOptions" type="button" class="ghost">
+            Open main options
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <script src="native-helper-setup.js"></script>
+  </body>
+</html>

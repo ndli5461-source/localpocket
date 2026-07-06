@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Local Pocket Selection Search</title>
+    <link rel="stylesheet" href="styles/options.css" />
+  </head>
+
+  <body>
+    <div class="container">
+      <header class="hero">
+        <div class="logo"></div>
+        <div>
+          <h1>Selection Search</h1>
+          <p>Customize the popup that appears when you highlight text in the AI sidebar.</p>
+        </div>
+      </header>
+
+      <section class="panel">
+        <h2>Enable</h2>
+        <div class="row">
+          <label for="selectionSearchEnabled">Show selection popup</label>
+          <input id="selectionSearchEnabled" type="checkbox" />
+        </div>
+        <div class="hint">
+          When enabled, selecting text in any AI sidebar shows quick actions like search and copy.
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Search engines</h2>
+        <div class="selection-engine-header">
+          <div>P.</div>
+          <div>C.</div>
+          <div>Name</div>
+          <div>Search URL</div>
+          <div>Icon URL</div>
+          <div>S.</div>
+          <div></div>
+        </div>
+        <div id="selectionSearchEngineList" class="selection-engine-list"></div>
+        <div class="selection-engine-actions">
+          <button id="addSelectionEngine" class="ghost">Add engine</button>
+          <button id="addSelectionGroup" class="ghost">Add group</button>
+          <button id="addSelectionSeparator" class="ghost">Add separator</button>
+          <button id="importFirefoxEngines" class="ghost">Load from Firefox</button>
+        </div>
+        <div class="hint" style="margin-top: 8px">
+          Use <code>%s</code> or <code>{searchTerms}</code> in URLs. Shortcuts are single letters.
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Popup/icons behaviour</h2>
+        <div class="row">
+          <label for="selectionOpenBehavior">Opening behaviour</label>
+          <select id="selectionOpenBehavior">
+            <option value="auto">Auto (opens on text selection)</option>
+            <option value="manual">Manual (use button)</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="selectionMinChars">Minimum selected characters</label>
+          <input id="selectionMinChars" type="number" min="0" max="500" step="1" />
+        </div>
+        <div class="row">
+          <label for="selectionMaxChars">Maximum selected characters</label>
+          <input id="selectionMaxChars" type="number" min="0" max="5000" step="1" />
+        </div>
+        <div class="row">
+          <label for="selectionPopupDelay">Popup delay (ms)</label>
+          <input id="selectionPopupDelay" type="number" min="0" max="5000" step="10" />
+        </div>
+        <div class="row">
+          <label for="selectionPopupLocation">Popup location</label>
+          <select id="selectionPopupLocation">
+            <option value="cursor">At cursor location</option>
+            <option value="selection">At selection</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="selectionLeftClick">Left mouse button click</label>
+          <select id="selectionLeftClick">
+            <option value="new-background-tab">Open in new background tab</option>
+            <option value="new-tab">Open in new tab</option>
+            <option value="same-tab">Open in same tab</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="selectionRightClick">Right mouse button click</label>
+          <select id="selectionRightClick">
+            <option value="new-background-tab">Open in new background tab</option>
+            <option value="new-tab">Open in new tab</option>
+            <option value="same-tab">Open in same tab</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="selectionMiddleClick">Middle mouse button click</label>
+          <select id="selectionMiddleClick">
+            <option value="new-background-tab">Open in new background tab</option>
+            <option value="new-tab">Open in new tab</option>
+            <option value="same-tab">Open in same tab</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="selectionShortcutClick">When using a shortcut</label>
+          <select id="selectionShortcutClick">
+            <option value="new-background-tab">Open in new background tab</option>
+            <option value="new-tab">Open in new tab</option>
+            <option value="same-tab">Open in same tab</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="selectionAllowEditable">Allow popup on editable fields</label>
+          <input id="selectionAllowEditable" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="selectionHideOnScroll">Hide popup on page scroll</label>
+          <input id="selectionHideOnScroll" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="selectionHideOnRightClick">Hide popup on right click</label>
+          <input id="selectionHideOnRightClick" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="selectionHideOnEngineClick">Hide popup on engine click</label>
+          <input id="selectionHideOnEngineClick" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="selectionAllowShortcutWithoutPopup">Allow engine shortcuts without popup</label>
+          <input id="selectionAllowShortcutWithoutPopup" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="selectionPopupAnimation">Popup animation duration (ms)</label>
+          <input id="selectionPopupAnimation" type="number" min="0" max="1200" step="10" />
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Context menu</h2>
+        <div class="row">
+          <label for="selectionContextMenuEnabled">Is the context menu enabled?</label>
+          <input id="selectionContextMenuEnabled" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="selectionContextMenuLeft">Context menu left click behaviour</label>
+          <select id="selectionContextMenuLeft">
+            <option value="new-tab">Open in new tab</option>
+            <option value="new-background-tab">Open in new background tab</option>
+            <option value="same-tab">Open in same tab</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="selectionContextMenuRight">Context menu right click behaviour</label>
+          <select id="selectionContextMenuRight">
+            <option value="new-tab">Open in new tab</option>
+            <option value="new-background-tab">Open in new background tab</option>
+            <option value="same-tab">Open in same tab</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="selectionContextMenuMiddle">Context menu middle click behaviour</label>
+          <select id="selectionContextMenuMiddle">
+            <option value="new-background-tab">Open in new background tab</option>
+            <option value="new-tab">Open in new tab</option>
+            <option value="same-tab">Open in same tab</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="selectionContextMenuTitle">Context menu title</label>
+          <input id="selectionContextMenuTitle" type="text" />
+        </div>
+        <div class="hint">
+          Use <code>%s</code> to insert the selected text in the title.
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Import from Swift Selection Search</h2>
+        <div class="row">
+          <label>Import SSS JSON</label>
+          <div class="shortcut">
+            <button id="importSss" class="ghost">Import</button>
+          </div>
+        </div>
+        <input id="importSssFile" type="file" accept=".json,application/json" hidden />
+        <div id="importSssStatus" class="hint"></div>
+      </section>
+
+      <section class="panel actions">
+        <button id="backToMainSettings" class="ghost">Back to main settings</button>
+        <div id="saveStatus" class="hint"></div>
+      </section>
+    </div>
+
+    <script src="icons/default-custom-icons-1.js"></script>
+    <script src="icons/default-custom-icons-2.js"></script>
+    <script src="settings.js"></script>
+    <script src="options-sss.js"></script>
+  </body>
+</html>

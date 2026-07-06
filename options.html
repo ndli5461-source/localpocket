@@ -1,0 +1,1524 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Local Pocket Options</title>
+    <link rel="stylesheet" href="styles/options.css" />
+    <script src="supabase-config.js"></script>
+    <script src="supabase-js.js"></script>
+    <script src="core/supabaseAuthCore.js"></script>
+    <script src="core/supabaseSyncCore.js"></script>
+  </head>
+
+  <body>
+    <div class="container">
+      <header class="hero">
+        <div class="logo"></div>
+        <div>
+          <h1>Local Pocket</h1>
+          <p>Customize how your local reader behaves.</p>
+        </div>
+      </header>
+
+      <nav class="settings-nav" aria-label="Quick jump settings">
+        <a href="#backupSettings">Backup</a>
+        <a href="#accountSyncSettings">Account & Sync</a>
+        <a href="#generalSettings">General</a>
+        <a href="#categorySettings">Categories</a>
+        <a href="#keyboardSettings">Keyboard</a>
+        <a href="#automationSettings">Automations</a>
+      </nav>
+
+      <section id="backupSettings" class="panel" aria-labelledby="backupHeading">
+        <h2 id="backupHeading">Backup</h2>
+        <div class="row">
+          <label for="exportBackup">Export or import your saved links, notes, and note folders</label>
+          <div class="shortcut">
+            <button id="exportBackup" class="ghost" aria-label="Export backup data">Export</button>
+            <button id="importBackup" class="ghost" aria-label="Import backup data">Import</button>
+          </div>
+        </div>
+        <input
+          id="backupFile"
+          type="file"
+          accept=".json,application/json"
+          hidden
+          aria-label="Backup file input"
+        />
+        <div id="backupStatus" class="hint" role="status" aria-live="polite"></div>
+        <progress id="backupProgress" max="100" value="0" style="display:none; width: 100%;" aria-label="Backup progress"></progress>
+      </section>
+
+      <section id="accountSyncSettings" class="panel" aria-labelledby="accountSyncHeading">
+        <h2 id="accountSyncHeading">Account & Sync</h2>
+        
+        <!-- Login/Register Forms -->
+        <div id="authForms">
+          <div id="loginForm" class="auth-form">
+            <div class="row">
+              <label for="loginEmail">Email</label>
+              <input id="loginEmail" type="email" placeholder="your@email.com" />
+            </div>
+            <div class="row">
+              <label for="loginPassword">Password</label>
+              <input id="loginPassword" type="password" placeholder="Password" />
+            </div>
+            <div class="row">
+              <div class="shortcut">
+                <button id="loginBtn" class="ghost">Login</button>
+                <button id="showRegisterBtn" class="ghost">Create Account</button>
+              </div>
+            </div>
+            <div class="row" style="margin-top: 12px;">
+              <label>Or sign in with</label>
+              <div class="shortcut">
+                <button id="googleSignInBtn" class="ghost" style="display: flex; align-items: center; gap: 8px;">
+                  <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M17.64 9.20455C17.64 8.56636 17.5827 7.95273 17.4764 7.36364H9V10.845H13.8436C13.635 11.97 13.0009 12.9232 12.0477 13.5614V15.8195H14.9564C16.6582 14.2527 17.64 11.9455 17.64 9.20455Z" fill="#4285F4"/>
+                    <path d="M9 18C11.43 18 13.4673 17.1941 14.9564 15.8195L12.0477 13.5614C11.2418 14.1014 10.2109 14.4205 9 14.4205C6.65591 14.4205 4.67182 12.8373 3.96409 10.71H0.957275V13.0418C2.43818 15.9832 5.48182 18 9 18Z" fill="#34A853"/>
+                    <path d="M3.96409 10.71C3.78409 10.17 3.68182 9.59318 3.68182 9C3.68182 8.40682 3.78409 7.83 3.96409 7.29V4.95818H0.957275C0.347727 6.17318 0 7.54773 0 9C0 10.4523 0.347727 11.8268 0.957275 13.0418L3.96409 10.71Z" fill="#FBBC05"/>
+                    <path d="M9 3.57955C10.3214 3.57955 11.5077 4.03364 12.4405 4.92545L15.0218 2.34409C13.4632 0.891818 11.4259 0 9 0C5.48182 0 2.43818 2.01682 0.957275 4.95818L3.96409 7.29C4.67182 5.16273 6.65591 3.57955 9 3.57955Z" fill="#EA4335"/>
+                  </svg>
+                  Google
+                </button>
+              </div>
+            </div>
+            <div id="loginStatus" class="hint" role="status" aria-live="polite"></div>
+          </div>
+
+          <div id="registerForm" class="auth-form" style="display:none;">
+            <div class="row">
+              <label for="registerEmail">Email</label>
+              <input id="registerEmail" type="email" placeholder="your@email.com" />
+            </div>
+            <div class="row">
+              <label for="registerPassword">Password</label>
+              <input id="registerPassword" type="password" placeholder="Password (min 6 characters)" />
+            </div>
+            <div class="row">
+              <label for="registerConfirmPassword">Confirm Password</label>
+              <input id="registerConfirmPassword" type="password" placeholder="Confirm Password" />
+            </div>
+            <div class="row">
+              <div class="shortcut">
+                <button id="registerBtn" class="ghost">Register</button>
+                <button id="showLoginBtn" class="ghost">Back to Login</button>
+              </div>
+            </div>
+            <div id="registerStatus" class="hint" role="status" aria-live="polite"></div>
+          </div>
+        </div>
+
+        <!-- User Info (shown when logged in) -->
+        <div id="userInfo" style="display:none;">
+          <div class="row">
+            <label>Logged in as</label>
+            <div class="shortcut">
+              <span id="userEmail" class="hint"></span>
+              <span id="userUid" class="hint" style="font-size:11px;"></span>
+            </div>
+          </div>
+          <div class="row">
+            <label>Sync Status</label>
+            <div class="shortcut">
+              <span id="syncStatus" class="hint">Not synced</span>
+              <span id="lastSyncTime" class="hint" style="font-size:11px;"></span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="autoSyncEnabled">Auto-sync on data change</label>
+            <input id="autoSyncEnabled" type="checkbox" checked />
+          </div>
+          <div class="row">
+            <label for="syncNotificationEnabled">Auto-sync notification</label>
+            <input id="syncNotificationEnabled" type="checkbox" checked />
+          </div>
+          <div class="row">
+            <label>Manual Sync</label>
+            <div class="shortcut">
+              <button id="manualSyncBtn" class="ghost">Sync Now</button>
+              <button id="logoutBtn" class="ghost danger">Logout</button>
+            </div>
+          </div>
+          <div id="syncStatusMessage" class="hint" role="status" aria-live="polite"></div>
+        </div>
+
+        <!-- Supabase Config Warning -->
+        <div id="supabaseConfigWarning" class="hint" style="color:#ff9090; display:none;">
+          ⚠️ Supabase configuration not found. Please configure supabase-config.js with your Supabase project credentials.
+        </div>
+        <!-- Debug Redirect URL -->
+        <div id="debugRedirectUrl" class="hint" style="margin-top: 12px; font-family: monospace; word-break: break-all; color: #a0a0b0;"></div>
+      </section>
+
+      <section id="generalSettings" class="panel" aria-labelledby="generalHeading">
+        <h2 id="generalHeading">General</h2>
+        <p class="panel-intro">
+          Settings are organized by groups so you can focus on the sections you need.
+        </p>
+        <div class="settings-stack">
+          <details class="settings-group">
+            <summary>
+              <span class="settings-group-heading">
+                <span class="settings-group-title">Everyday Use</span>
+                <span class="settings-group-subtitle">Badge, reading, auto-category, theme, and category picker.</span>
+              </span>
+              <span class="settings-group-meta">
+                <span class="settings-group-badge">Basic</span>
+                <span class="settings-group-caret" aria-hidden="true"></span>
+              </span>
+            </summary>
+            <div class="settings-group-body">
+        <div class="row">
+          <label for="showBadge">Display count badge</label>
+          <input id="showBadge" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="showPageAction"
+            >Show "add to Pocket" button in address bar</label
+          >
+          <input id="showPageAction" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="enableCategoryPicker">Enable Category Picker (pop-up on page)</label>
+          <input id="enableCategoryPicker" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="enableDedupeButton">Enable "Dup" button in picker (scan duplicates)</label>
+          <input id="enableDedupeButton" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="deleteAfterOpen"
+            >Delete link after opening the current link</label
+          >
+          <input id="deleteAfterOpen" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="globalLinkInBackgroundTab"
+            >Open next/random link in background tab (global shortcut)</label
+          >
+          <input id="globalLinkInBackgroundTab" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="randomAcrossAllCategories"
+            >Random link across all categories (ignore category filter)</label
+          >
+          <input id="randomAcrossAllCategories" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="contextMenuSaveToUncategorized"
+            >Right-click Add to Pocket: save to Uncategorized</label
+          >
+          <input id="contextMenuSaveToUncategorized" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="zoomLevel">Zoom level</label>
+          <select id="zoomLevel">
+            <option value="sm">Small</option>
+            <option value="md">Regular</option>
+            <option value="lg">Large</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="pageSize">Pagination</label>
+          <select id="pageSize">
+            <option value="5">5 items per page</option>
+            <option value="10">10 items per page</option>
+            <option value="20">20 items per page</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="pickerAnimation">Category picker animation</label>
+          <select id="pickerAnimation">
+            <option value="fade">Fade (default)</option>
+            <option value="slide">Slide Up</option>
+            <option value="scale">Scale In</option>
+            <option value="slide-left">Slide Left</option>
+            <option value="slide-right">Slide Right</option>
+            <option value="pop">Pop (springy)</option>
+            <option value="drop">Drop</option>
+            <option value="blur">Blur-in</option>
+            <option value="none">None (instant)</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="pickerAnimationDuration">Animation speed (ms)</label>
+          <input
+            id="pickerAnimationDuration"
+            type="number"
+            min="50"
+            max="2000"
+            step="10"
+          />
+        </div>
+        <div class="row">
+          <label for="pickerStartMode">Category picker start</label>
+          <select id="pickerStartMode" style="display:none;">
+            <option value="last-link">Last opened link (with scroll position)</option>
+          </select>
+          <div class="shortcut">
+            <span class="hint" style="margin:0;">Last opened link (with scroll position)</span>
+          </div>
+        </div>
+        <div class="row">
+          <label for="pickerHighlightColor">Warna highlight link terakhir dibuka</label>
+          <input id="pickerHighlightColor" type="color" />
+        </div>
+        <div class="hint" style="margin-top: -4px; margin-bottom: 8px">
+          Tukar warna border/glow untuk link yang terakhir dibuka di dalam picker.
+        </div>
+        <div class="row">
+          <label for="notesStartMode">Notepad start</label>
+          <select id="notesStartMode">
+            <option value="home">Category list</option>
+            <option value="last">Last opened note</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="pickerLayout">Category picker layout</label>
+          <select id="pickerLayout">
+            <option value="cozy">Cozy (visual)</option>
+            <option value="compact">Compact (padat)</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="pickerYoutubeThumbnails">Thumbnails in picker</label>
+          <input id="pickerYoutubeThumbnails" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="trashLimit">Trash limit (0 = no limit)</label>
+          <input id="trashLimit" type="number" min="0" max="2000" step="10" />
+        </div>
+        <div class="row">
+          <label for="pickerHoverSound"
+            >Play click sound on hover (picker)</label
+          >
+          <input id="pickerHoverSound" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="hoverSoundFile">Custom hover sound</label>
+          <div class="shortcut">
+            <button id="uploadHoverSound" type="button" class="ghost">
+              Upload
+            </button>
+            <button id="clearHoverSound" type="button" class="ghost danger">
+              Delete selected
+            </button>
+          </div>
+          <select id="hoverSoundSelect"></select>
+          <div id="hoverSoundStatus" class="hint">
+            Max 400KB, MP3/WAV/OGG. Up to 10 sounds.
+          </div>
+          <input
+            id="hoverSoundFile"
+            type="file"
+            accept=".mp3,.wav,.ogg,audio/*"
+            hidden
+          />
+        </div>
+        <div class="row">
+          <label for="themePreset">Color theme preset</label>
+          <select id="themePreset">
+            <option value="classic">Classic</option>
+            <option value="ocean">Ocean</option>
+            <option value="sunset">Sunset</option>
+            <option value="modern">Modern</option>
+            <option value="minimal">Minimal Light</option>
+            <option value="cyber">Cyber Neon</option>
+            <option value="forest">Forest</option>
+            <option value="pastel">Pastel Glow</option>
+            <option value="mono">Mono Slate</option>
+            <option value="oled">OLED Black</option>
+            <option value="sepia">Sepia Study</option>
+            <option value="retro">Retro Archive</option>
+            <option value="aurora">Aurora</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div id="customThemeSection" class="custom-theme-section">
+          <div class="custom-theme-label">Custom Theme Colors</div>
+          <div class="custom-color-grid">
+            <label>Background <input type="color" id="customBg" value="#1a1a2e" /></label>
+            <label>Background Alt <input type="color" id="customBgAlt" value="#16213e" /></label>
+            <label>Panel <input type="color" id="customPanel" value="#0f3460" /></label>
+            <label>Panel Alt <input type="color" id="customPanelAlt" value="#1a1a4e" /></label>
+            <label>Text <input type="color" id="customInk" value="#e0e0e0" /></label>
+            <label>Muted <input type="color" id="customMuted" value="#a0a0b0" /></label>
+            <label>Accent <input type="color" id="customAccent" value="#e94560" /></label>
+            <label>Accent 2 <input type="color" id="customAccent2" value="#f5a623" /></label>
+            <label>Accent 3 <input type="color" id="customAccent3" value="#533483" /></label>
+            <label>Accent 4 <input type="color" id="customAccent4" value="#0f3460" /></label>
+            <label>Border <input type="color" id="customBorder" value="#2a2a4e" /></label>
+          </div>
+        </div>
+            </div>
+          </details>
+          <details class="settings-group">
+            <summary>
+              <span class="settings-group-heading">
+                <span class="settings-group-title">Picker Button Shortcuts</span>
+                <span class="settings-group-subtitle">Shortcut keyboard untuk butang dalam category picker.</span>
+              </span>
+              <span class="settings-group-meta">
+                <span class="settings-group-badge">Picker</span>
+                <span class="settings-group-caret" aria-hidden="true"></span>
+              </span>
+            </summary>
+            <div class="settings-group-body">
+              <div class="hint" style="margin-bottom: 8px">
+                Tekan butang input, kemudian tekan key yang diingini. Boleh guna modifier (Ctrl, Alt, Shift).
+                Tekan <strong>Backspace</strong> atau <strong>Delete</strong> untuk kosongkan.
+              </div>
+              <div class="row">
+                <label for="pickerImportShortcut">Import backup</label>
+                <div class="shortcut">
+                  <input id="pickerImportShortcut" type="text" placeholder="Optional" readonly data-setting-key="pickerImportShortcut" />
+                </div>
+              </div>
+              <div class="row">
+                <label for="pickerExportShortcut">Export backup</label>
+                <div class="shortcut">
+                  <input id="pickerExportShortcut" type="text" placeholder="Optional" readonly data-setting-key="pickerExportShortcut" />
+                </div>
+              </div>
+              <div class="row">
+                <label for="pickerClearFavShortcut">Clear favorites only</label>
+                <div class="shortcut">
+                  <input id="pickerClearFavShortcut" type="text" placeholder="Optional" readonly data-setting-key="pickerClearFavShortcut" />
+                </div>
+              </div>
+              <div class="row">
+                <label for="pickerRestoreFavShortcut">Restore cleared favorites</label>
+                <div class="shortcut">
+                  <input id="pickerRestoreFavShortcut" type="text" placeholder="Optional" readonly data-setting-key="pickerRestoreFavShortcut" />
+                </div>
+              </div>
+              <div class="row">
+                <label for="pickerAutoNextShortcut">Auto next (YouTube)</label>
+                <div class="shortcut">
+                  <input id="pickerAutoNextShortcut" type="text" placeholder="Optional" readonly data-setting-key="pickerAutoNextShortcut" />
+                </div>
+              </div>
+              <div class="row">
+                <label for="pickerAutoRandomShortcut">Auto random (YouTube)</label>
+                <div class="shortcut">
+                  <input id="pickerAutoRandomShortcut" type="text" placeholder="Optional" readonly data-setting-key="pickerAutoRandomShortcut" />
+                </div>
+              </div>
+              <div class="row">
+                <label for="pickerSelectPageShortcut">Select all on page</label>
+                <div class="shortcut">
+                  <input id="pickerSelectPageShortcut" type="text" placeholder="Optional" readonly data-setting-key="pickerSelectPageShortcut" />
+                </div>
+              </div>
+              <div class="row">
+                <label for="pickerClearSelectionShortcut">Clear selection</label>
+                <div class="shortcut">
+                  <input id="pickerClearSelectionShortcut" type="text" placeholder="Optional" readonly data-setting-key="pickerClearSelectionShortcut" />
+                </div>
+              </div>
+              <div class="row">
+                <label for="pickerBulkDeleteShortcut">Delete selected links</label>
+                <div class="shortcut">
+                  <input id="pickerBulkDeleteShortcut" type="text" placeholder="Optional" readonly data-setting-key="pickerBulkDeleteShortcut" />
+                </div>
+              </div>
+              <div class="row">
+                <label for="pickerBulkFavShortcut">Favorite selected links</label>
+                <div class="shortcut">
+                  <input id="pickerBulkFavShortcut" type="text" placeholder="Optional" readonly data-setting-key="pickerBulkFavShortcut" />
+                </div>
+              </div>
+              <div class="row">
+                <label for="pickerRenameCategoryShortcut">Rename category</label>
+                <div class="shortcut">
+                  <input id="pickerRenameCategoryShortcut" type="text" placeholder="Optional" readonly data-setting-key="pickerRenameCategoryShortcut" />
+                </div>
+              </div>
+              <div class="row">
+                <label for="pickerScanDupShortcut">Scan duplicate links</label>
+                <div class="shortcut">
+                  <input id="pickerScanDupShortcut" type="text" placeholder="Optional" readonly data-setting-key="pickerScanDupShortcut" />
+                </div>
+              </div>
+              <div class="row">
+                <label for="pickerFavShortcut">Favourite link (per-item, arrow selected)</label>
+                <div class="shortcut">
+                  <input id="pickerFavShortcut" type="text" placeholder="Default: F" readonly data-setting-key="pickerFavShortcut" />
+                </div>
+              </div>
+              <div class="row">
+                <label for="pickerToggleFavShortcut">Toggle favorites filter (butang ⭐)</label>
+                <div class="shortcut">
+                  <input id="pickerToggleFavShortcut" type="text" placeholder="Optional, e.g. Ctrl+Shift+F" readonly data-setting-key="pickerToggleFavShortcut" />
+                </div>
+              </div>
+              <div class="row">
+                <label for="pickerTrashShortcut">Buka tong sampah (butang 🗑️)</label>
+                <div class="shortcut">
+                  <input id="pickerTrashShortcut" type="text" placeholder="Optional, e.g. T" readonly data-setting-key="pickerTrashShortcut" />
+                </div>
+              </div>
+              <div class="row">
+                <label for="pickerPinShortcut">Pin panel 📌 (cegah tutup panel)</label>
+                <div class="shortcut">
+                  <input id="pickerPinShortcut" type="text" placeholder="Optional, e.g. P" readonly data-setting-key="pickerPinShortcut" />
+                </div>
+              </div>
+              <div class="row">
+                <label for="pickerToggleDeleteAfterOpenShortcut">Toggle butang "Delete after open" (D)</label>
+                <div class="shortcut">
+                  <input id="pickerToggleDeleteAfterOpenShortcut" type="text" placeholder="Optional, e.g. D" readonly data-setting-key="pickerToggleDeleteAfterOpenShortcut" />
+                </div>
+              </div>
+              <div class="row">
+                <label for="pickerToggleShowHiddenShortcut">Toggle butang "Mata" (sembunyi/papar kategori)</label>
+                <div class="shortcut">
+                  <input id="pickerToggleShowHiddenShortcut" type="text" placeholder="Optional, e.g. H" readonly data-setting-key="pickerToggleShowHiddenShortcut" />
+                </div>
+              </div>
+              <div class="row">
+                <label for="commandPaletteShortcut">Command palette (Ctrl+K / Ctrl+P)</label>
+                <div class="shortcut">
+                  <input id="commandPaletteShortcut" type="text" placeholder="Default: Ctrl+K" readonly data-setting-key="commandPaletteShortcut" />
+                </div>
+              </div>
+            </div>
+          </details>
+          <details class="settings-group">
+            <summary>
+              <span class="settings-group-heading">
+                <span class="settings-group-title">Sidebar AI &amp; Summary</span>
+                <span class="settings-group-subtitle">Provider AI, fokus input, SSS, dan arahan ringkasan.</span>
+              </span>
+              <span class="settings-group-meta">
+                <span class="settings-group-badge">Sidebar</span>
+                <span class="settings-group-caret" aria-hidden="true"></span>
+              </span>
+            </summary>
+            <div class="settings-group-body">
+        <div class="row">
+          <label for="sidebarAiEnabled">Enable AI Sidebar</label>
+          <input id="sidebarAiEnabled" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="sidebarAiProvider">Sidebar AI provider</label>
+          <select id="sidebarAiProvider">
+            <option value="chatgpt">ChatGPT</option>
+            <option value="claude">Claude</option>
+            <option value="gemini">Gemini</option>
+            <option value="perplexity">Perplexity</option>
+            <option value="copilot">Copilot</option>
+            <option value="grok">Grok</option>
+            <option value="deepseek">DeepSeek</option>
+            <option value="poe">Poe</option>
+            <option value="mistral">Mistral</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <label>AI button action</label>
+          <select id="aiMode">
+            <option value="sidebar">Sidebar (panel tepi Firefox)</option>
+            <option value="overlay">Overlay (tetingkap terapung)</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <label for="sidebarFocusF6DelayMs">Sidebar AI F6 delay (ms)</label>
+          <input
+            id="sidebarFocusF6DelayMs"
+            type="number"
+            min="0"
+            max="5000"
+            step="10"
+          />
+        </div>
+        <div class="hint">
+          Naikkan nilai ini jika cursor di AI sidebar lambat fokus. Nilai lebih besar bermaksud extension tunggu lebih lama sebelum trigger <code>F6</code> dan cuba fokuskan kotak input.
+        </div>
+        <div class="row">
+          <label for="sidebarNativeFocusHelperEnabled">Use native F6 helper (Windows)</label>
+          <input
+            id="sidebarNativeFocusHelperEnabled"
+            type="checkbox"
+          />
+        </div>
+        <div class="hint">
+          Bila aktif dan helper dipasang, extension akan cuba hantar <code>F6</code> sebenar dari Windows sebagai fallback tambahan untuk fokus AI sidebar.
+        </div>
+        <div class="row">
+          <label>Native helper setup</label>
+          <button id="openNativeHelperSetup" type="button" class="ghost">
+            Open native helper setup
+          </button>
+        </div>
+        <div class="row">
+          <label>Selection search</label>
+          <button id="openSelectionSearchSettings" type="button" class="ghost">
+            Open selection search settings
+          </button>
+        </div>
+        <div class="row">
+          <label for="summaryOutputLanguage">Bahasa output ringkasan</label>
+          <select id="summaryOutputLanguage">
+            <option value="ms">Bahasa Melayu</option>
+            <option value="en">English</option>
+            <option value="id">Bahasa Indonesia</option>
+            <option value="ar">Arabic</option>
+            <option value="zh">Chinese</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="pt">Portuguese</option>
+            <option value="hi">Hindi</option>
+            <option value="ja">Japanese</option>
+            <option value="ko">Korean</option>
+            <option value="ru">Russian</option>
+            <option value="de">German</option>
+            <option value="it">Italian</option>
+            <option value="vi">Tiếng Việt</option>
+            <option value="th">Thai</option>
+          </select>
+        </div>
+        <div class="hint">
+          Bahasa yang akan digunakan oleh AI untuk hasilkan ringkasan.
+        </div>
+        <div class="row">
+          <label for="summaryTone">Gaya penulisan ringkasan</label>
+          <select id="summaryTone">
+            <option value="neutral">Neutral (seimbang)</option>
+            <option value="formal">Formal (profesional)</option>
+            <option value="casual">Santai (mudah difahami)</option>
+            <option value="educational">Pendidikan (sistematik)</option>
+          </select>
+        </div>
+        <div class="hint">
+          Nada dan gaya bahasa yang digunakan dalam ringkasan.
+        </div>
+        <div class="row">
+          <label for="summaryMaxWords">Had maksimum perkataan</label>
+          <input
+            id="summaryMaxWords"
+            type="number"
+            min="0"
+            max="5000"
+            step="50"
+            placeholder="0 = tanpa had"
+          />
+        </div>
+        <div class="hint">
+          Hadkan panjang ringkasan. 0 bermaksud tanpa had (AI tentukan sendiri).
+        </div>
+        <div class="row">
+          <label for="summaryOpenMode">Buka summary melalui</label>
+          <select id="summaryOpenMode">
+            <option value="sidebar">Sidebar AI Local Pocket</option>
+            <option value="overlay">Overlay terapung</option>
+            <option value="native-sidebar">Sidebar AI Firefox asli</option>
+          </select>
+        </div>
+        <div class="hint">
+          Pilih cara ringkasan AI dipaparkan: sidebar extension, popup terapung, atau sidebar Firefox asli.
+        </div>
+        <div class="row row-multiline">
+          <label for="summaryCustomPrompt">
+            Custom prompt instructions
+          </label>
+          <div class="textarea-wrapper">
+            <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
+              <button type="button" id="summaryPromptTemplateSave" style="padding:5px 10px;border-radius:6px;border:1px solid #4a9;background:#1a3a2a;color:#7fcfa0;font-size:12px;cursor:pointer;" title="Simpan prompt semasa sebagai templat baru">💾 Simpan sebagai Templat</button>
+
+              <button type="button" id="exportPromptTemplates" style="padding:5px 10px;border-radius:6px;border:1px solid #555;background:#2a2a2a;color:#ddd;font-size:12px;cursor:pointer;" title="Export semua templat ke JSON">📤 Export</button>
+              <button type="button" id="importPromptTemplates" style="padding:5px 10px;border-radius:6px;border:1px solid #555;background:#2a2a2a;color:#ddd;font-size:12px;cursor:pointer;" title="Import templat dari JSON">📥 Import</button>
+              <input type="file" id="importPromptTemplatesFile" accept=".json" style="display:none;">
+            </div>
+            <div id="summaryPromptSuggestions" style="margin-bottom:8px;border:1px solid #555;border-radius:6px;background:#1a1a2a;padding:8px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <strong style="color:#ddd;font-size:13px;">Saranan Prompt</strong>
+              </div>
+              <div id="summaryPromptSuggestionsList" style="display:flex;gap:6px;flex-wrap:wrap;">
+                <span class="hint" style="color:#666;font-size:11px;">Tiada saranan</span>
+              </div>
+            </div>
+            <div id="summaryPromptTemplateList" style="max-height:200px;overflow-y:auto;margin-bottom:8px;border:1px solid #555;border-radius:6px;background:#1a1a2a;padding:8px;">
+              <div class="hint" style="text-align:center;color:#666;padding:20px;">Tiada templat disimpan</div>
+            </div>
+            <div id="templatePreviewModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:10000;align-items:center;justify-content:center;">
+              <div style="background:#2a2a2a;border:1px solid #555;border-radius:8px;padding:20px;max-width:600px;max-height:80vh;overflow-y:auto;margin:20px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                  <strong id="previewTemplateName" style="color:#ddd;font-size:16px;">Template Preview</strong>
+                  <button id="closePreviewModal" style="padding:5px 10px;border-radius:4px;border:1px solid #a55;background:#3a1a1a;color:#ff9090;font-size:12px;cursor:pointer;">✕ Close</button>
+                </div>
+                <pre id="previewTemplateContent" style="background:#1a1a2a;border:1px solid #444;border-radius:4px;padding:12px;color:#ddd;font-size:13px;white-space:pre-wrap;word-wrap:break-word;max-height:400px;overflow-y:auto;"></pre>
+              </div>
+            </div>
+
+            <textarea
+              id="summaryCustomPrompt"
+              placeholder="E.g. Explain like I'm 5 years old. Provide 3 core takeaways."
+            ></textarea>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+              <div class="hint" style="margin:0;">
+                These instructions will be strictly followed by the AI during summarization.
+                Save as template to reuse later.
+              </div>
+              <div id="summaryPromptCharCount" class="hint" style="margin:0;color:#888;font-size:12px;">0/5000</div>
+            </div>
+          </div>
+        </div>
+            </div>
+          </details>
+          <details class="settings-group">
+            <summary>
+              <span class="settings-group-heading">
+                <span class="settings-group-title">Floating Button</span>
+                <span class="settings-group-subtitle">Semua tetapan ikon terapung dan visualnya.</span>
+              </span>
+              <span class="settings-group-meta">
+                <span class="settings-group-badge">Advanced</span>
+                <span class="settings-group-caret" aria-hidden="true"></span>
+              </span>
+            </summary>
+            <div class="settings-group-body">
+        <div class="row">
+          <label for="floatingButtonEnabled">Enable floating button</label>
+          <input id="floatingButtonEnabled" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="floatingAiSelectionEnabled">Floating AI button on text selection</label>
+          <input id="floatingAiSelectionEnabled" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="floatingButtonAutoSuspendTabThreshold">
+            Auto pause bila tab web lebih dari
+          </label>
+          <input
+            id="floatingButtonAutoSuspendTabThreshold"
+            type="number"
+            min="0"
+            max="500"
+            step="1"
+          />
+        </div>
+        <div id="floatingButtonAutoSuspendStatus" class="hint">
+          0 = off. Bila jumlah tab web melebihi angka ini, floating button akan pause dan hidup semula bila turun semula.
+        </div>
+        <div class="row">
+          <label for="floatingButtonVisibilityMode">Cara ikon muncul (Visibility)</label>
+          <select id="floatingButtonVisibilityMode">
+             <option value="hover">Hover (Dekat)</option>
+             <option value="always">Sentiasa kelihatan (Always)</option>
+             <option value="scroll">Tatal ke atas (Scroll up)</option>
+             <option value="click">Klik di tepi kanan (Click on right edge)</option>
+             <option value="longpress">Kiri &amp; kanan tahan (Long press)</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="miniCategoryTriggerDirection">Arah hover untuk mini kategori muncul</label>
+          <select id="miniCategoryTriggerDirection">
+            <option value="right">Kanan (Right) ←default</option>
+            <option value="left">Kiri (Left)</option>
+            <option value="up">Atas (Up)</option>
+            <option value="down">Bawah (Down)</option>
+          </select>
+        </div>
+        <div class="hint" style="margin-top: -12px">
+          Gerakkan tetikus ke arah ini dari ikon terapung untuk paparkan senarai kategori mini.
+        </div>
+        <div class="row">
+          <label for="miniCategoryPanelLayout">Bentuk/layout panel kategori mini</label>
+          <select id="miniCategoryPanelLayout">
+            <option value="list">Senarai menegak (List)</option>
+            <option value="grid">Grid kotak (Grid)</option>
+            <option value="horizontal">Bar mendatar (Horizontal)</option>
+            <option value="radial">Radial bulatan (Radial)</option>
+            <option value="wheel">Separuh bulatan (Wheel)</option>
+          </select>
+        </div>
+        <div class="hint" style="margin-top: -12px">
+          Pilih cara kategori disusun dalam panel mini terapung.
+        </div>
+        <div class="row">
+          <label for="floatingButtonLongPressDuration"
+            >Durasi long press Floating Button (ms, maks 1000)</label
+          >
+          <input
+            id="floatingButtonLongPressDuration"
+            type="number"
+            min="0"
+            max="1000"
+            step="10"
+          />
+        </div>
+        <div class="hint">
+          Lalai lebih cepat untuk penggunaan harian. Naikkan jika mahu elak ikon muncul tak sengaja.
+        </div>
+        <div class="row">
+          <label for="floatingButtonCategoryPickerLongPressDuration"
+            >Durasi long press Category Picker (ms, maks 1000)</label
+          >
+          <input
+            id="floatingButtonCategoryPickerLongPressDuration"
+            type="number"
+            min="0"
+            max="1000"
+            step="10"
+          />
+        </div>
+        <div class="row">
+          <label for="floatingButtonCategoryPickerLongPressEnabled">Tahan tetikus buka Category Picker</label>
+          <input id="floatingButtonCategoryPickerLongPressEnabled" type="checkbox" />
+        </div>
+        <div class="hint" style="margin-top: -12px">
+          Bila aktif: tahan tetikus (long press) ikut setting Visibility untuk buka Category Picker.
+        </div>
+        <div class="row">
+          <label for="floatingButtonLongPressSwap">Tukar long press kiri/kanan (swap)</label>
+          <input id="floatingButtonLongPressSwap" type="checkbox" />
+        </div>
+        <div class="hint" style="margin-top: -12px">
+          Jika diaktifkan: long press <strong>kiri</strong> buka kategori, long press <strong>kanan</strong> buka floating button.
+        </div>
+        <div class="row">
+          <label for="longPressGestureEnabled">Dayakan long press gesture</label>
+          <input id="longPressGestureEnabled" type="checkbox" />
+        </div>
+        <div class="hint" style="margin-top: -12px">
+          Bila aktif, tahan tetikus untuk trigger gesture pada floating button.
+        </div>
+        <div class="option-list">
+          <section class="ol-section">
+            <div class="ol-item">
+              <div class="row">
+          <label for="categoryPickerMouseGesture">Rakam Gesture Tetikus</label>
+          <input id="categoryPickerMouseGesture" type="checkbox" />
+        </div>
+        <div class="hint" style="margin-top: -12px;">
+          Aktifkan untuk membuka Category Picker dengan gesture tetikus yang dirakam.
+        </div>
+        <div class="row">
+          <label for="blockPickerOnTextCursor">Halang picker bila cursor text</label>
+          <input id="blockPickerOnTextCursor" type="checkbox" />
+        </div>
+        <div class="hint" style="margin-top: -12px">
+          Bila aktif: Category Picker tidak akan trigger bila cursor berada di atas area teks (textarea, input, contenteditable).
+        </div>
+        <div class="row">
+          <label for="floatingSubButtonSize"
+            >Saiz Butang Tambahan (px)</label
+          >
+          <input
+            id="floatingSubButtonSize"
+            type="number"
+            min="20"
+            max="100"
+            step="1"
+          />
+        </div>
+        <div class="hint">
+          Ubah saiz butang kecil (S, D, A, P, ×) yang mengelilingi ikon. Lalai: 32px.
+        </div>
+        <div class="row">
+          <label for="floatingButtonSensitivity"
+            >Floating icon sensitivity (px)</label
+          >
+          <input
+            id="floatingButtonSensitivity"
+            type="number"
+            min="40"
+            max="600"
+            step="10"
+          />
+        </div>
+        <div class="hint">
+          How close your cursor must be to the right edge before the icon
+          appears. Higher = more sensitive.
+        </div>
+        <div class="row">
+          <label for="floatingButtonHideTime"
+            >Floating button disappear after (ms)</label
+          >
+          <input
+            id="floatingButtonHideTime"
+            type="number"
+            min="0"
+            max="10000"
+            step="100"
+          />
+        </div>
+        <div class="row">
+          <label for="floatingButtonAnimation">Floating button animation</label>
+          <select id="floatingButtonAnimation">
+            <option value="fade">Fade (simple opacity)</option>
+            <option value="slideIn">Slide In (from right)</option>
+            <option value="scaleIn">Scale In (grow)</option>
+            <option value="bounce">Bounce (elastic)</option>
+            <option value="popIn">Pop In (burst)</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="floatingNextUpLabel">Tunjuk label "Next up"</label>
+          <input id="floatingNextUpLabel" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="floatingNextUpMaxWidth">Lebar maksimum label "Next up" (px)</label>
+          <input
+            id="floatingNextUpMaxWidth"
+            type="number"
+            min="50"
+            max="800"
+            step="10"
+          />
+        </div>
+        <div class="row floating-icon-row">
+          <label for="floatingButtonIcon">Floating button icon</label>
+          <div class="icon-picker">
+            <select id="floatingButtonIcon"></select>
+            <img
+              id="floatingButtonIconPreview"
+              class="icon-preview"
+              src="icons/icon_2.png"
+              alt="Floating button icon preview"
+            />
+            <button id="deleteFloatingIcon" type="button" class="ghost danger">
+              Delete selected
+            </button>
+          </div>
+        </div>
+        <div class="row">
+          <label for="floatingButtonCustomIcon"
+            >Custom icon (PNG/SVG/GIF)</label
+          >
+          <div class="shortcut">
+            <button id="uploadFloatingIcon" type="button" class="ghost">
+              Upload
+            </button>
+            <button id="clearFloatingIcon" type="button" class="ghost">
+              Clear
+            </button>
+          </div>
+          <input
+            id="floatingButtonCustomIcon"
+            type="file"
+            accept=".png,.svg,.gif,image/png,image/svg+xml,image/gif"
+            hidden
+          />
+        </div>
+        <div class="row">
+          <label for="floatingButtonShowAnimDuration"
+            >Show animation duration (ms)</label
+          >
+          <input
+            id="floatingButtonShowAnimDuration"
+            type="number"
+            min="10"
+            max="2000"
+            step="10"
+          />
+        </div>
+        <div class="row">
+          <label for="floatingButtonHideAnimDuration"
+            >Hide animation duration (ms)</label
+          >
+          <input
+            id="floatingButtonHideAnimDuration"
+            type="number"
+            min="10"
+            max="2000"
+            step="10"
+          />
+        </div>
+        <div class="row row-multiline">
+          <label for="floatingButtonDomainExceptions">
+            Hide floating button on these domains
+          </label>
+          <div class="textarea-wrapper">
+            <textarea
+              id="floatingButtonDomainExceptions"
+              placeholder="example.com\n*.news.com"
+            ></textarea>
+            <div class="hint">
+              One domain per line. Add <code>*.example.com</code> to hide the
+              icon on a domain and all its subdomains.
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <label>Floating button actions</label>
+          <div class="shortcut">
+            <button id="resetFloatingPosition" type="button" class="ghost">
+              Reset position
+            </button>
+          </div>
+          <div class="hint" style="margin-top: 6px">
+            You can also double-click the floating icon to reset its position.
+          </div>
+        </div>
+            </div>
+          </details>
+          <details class="settings-group">
+            <summary>
+              <span class="settings-group-heading">
+                <span class="settings-group-title">Quick Save on Links</span>
+                <span class="settings-group-subtitle">Shortcut untuk simpan pautan tanpa buka popup utama.</span>
+              </span>
+              <span class="settings-group-meta">
+                <span class="settings-group-badge">Shortcut</span>
+                <span class="settings-group-caret" aria-hidden="true"></span>
+              </span>
+            </summary>
+            <div class="settings-group-body">
+        <div class="row">
+          <label for="ctrlAltLinkSaveEnabled"
+            >Modifier + click link to save to Pocket</label
+          >
+          <input id="ctrlAltLinkSaveEnabled" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="linkSaveModifierCombo">Link save key / modifier</label>
+          <select id="linkSaveModifierCombo"></select>
+        </div>
+        <div class="hint" style="margin-top: -4px; margin-bottom: 8px">
+          Example: choose <strong>Z</strong> here and <strong>Left click</strong> below to save with
+          <strong>Z + left click</strong>.
+        </div>
+        <div class="row">
+          <label for="linkSaveMouseButton">Link save mouse button</label>
+          <select id="linkSaveMouseButton">
+            <option value="left">Left click</option>
+            <option value="middle">Middle click</option>
+            <option value="right">Right click</option>
+            <option value="hover">Hover (tiada click — simpan bila hover + modifier)</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="linkSaveBundleModifier">Butang tambahan untuk Bundle Save</label>
+          <select id="linkSaveBundleModifier">
+            <option value="">Tiada (sentiasa kumpul)</option>
+            <option value="shift">Shift</option>
+            <option value="alt">Alt</option>
+            <option value="ctrl">Ctrl</option>
+            <option value="meta">Meta / Windows</option>
+          </select>
+        </div>
+        <div class="hint" style="margin-top: -4px; margin-bottom: 8px">
+          Jika pilih "Shift", shortcut biasa akan terus simpan, manakala <strong>Shift + klik</strong> akan mengumpul banyak link sekaligus (Bundle).
+        </div>
+        <div class="row">
+          <label for="linkSaveBundleDuration">Auto-simpan bundle selepas (saat)</label>
+          <input type="number" id="linkSaveBundleDuration" min="0" max="30" step="1" value="3" />
+        </div>
+        <div class="hint" style="margin-top: -4px; margin-bottom: 8px">
+          0 = manual, commit dengan Enter atau lepas modifier key. Default: 3 saat.
+        </div>
+        <div class="row">
+          <label for="linkSaveDirectModifier">Butang tambahan untuk Direct Save (Ke Uncategorized)</label>
+          <select id="linkSaveDirectModifier">
+            <option value="">Tiada</option>
+          </select>
+        </div>
+        <div class="hint" style="margin-top: -4px; margin-bottom: 8px">
+          Sama seperti fungsi Quick Save, tetapi ia akan memintas (bypass) pop-up pilihan kategori dan menyimpan pautan terus ke Uncategorized.
+        </div>
+        <div class="row">
+          <label for="linkSaveActiveCategoryModifier">Butang tambahan untuk Active Category Save</label>
+          <select id="linkSaveActiveCategoryModifier">
+            <option value="">Tiada</option>
+          </select>
+        </div>
+        <div class="hint" style="margin-top: -4px; margin-bottom: 8px">
+          Sama seperti Direct Save, tetapi menyimpan pautan ke kategori yang sedang aktif.
+        </div>
+        <div class="row">
+          <label for="linkSavePromptCategoryEnabled"
+            >Tunjuk pilihan kategori sebelum shortcut link save</label
+          >
+          <input id="linkSavePromptCategoryEnabled" type="checkbox" />
+        </div>
+        <div class="hint" style="margin-top: -4px; margin-bottom: 8px">
+          Bila aktif, shortcut link save akan buka pemilih kategori mini dahulu
+          sebelum simpan.
+        </div>
+            </div>
+          </details>
+          <div class="row" style="border:1px solid rgba(79,183,212,0.18); border-radius:14px; padding:16px 18px; background:linear-gradient(155deg, var(--panel), #303441);">
+            <label>Gesture</label>
+            <div class="shortcut">
+              <button id="openGestureSettings" type="button" class="ghost">
+                Buka Tetapan Gesture
+              </button>
+            </div>
+          </div>
+          <div class="row" style="border:1px solid rgba(79,183,212,0.18); border-radius:14px; padding:16px 18px; background:linear-gradient(155deg, var(--panel), #303441);">
+            <label>Pintasan Papan Kekunci</label>
+            <div class="shortcut">
+              <button id="openShortcutManager" type="button" class="ghost">
+                Buka Pengurus Pintasan
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="categorySettings" class="panel" aria-labelledby="categoryHeading">
+        <h2 id="categoryHeading">Categories</h2>
+        <div class="row category-visibility-controls">
+          <label for="showHiddenCategories">Show hidden categories</label>
+          <input id="showHiddenCategories" type="checkbox" aria-label="Toggle hidden categories visibility" />
+        </div>
+        <div class="category-extra-controls">
+          <button id="toggleCategoryList" type="button" class="ghost" aria-label="Toggle category list visibility">
+            Hide categories
+          </button>
+          <div id="categoryPager" class="category-pager">
+            <button id="prevCategoryPage" type="button" class="ghost" disabled>
+              Prev
+            </button>
+            <span id="categoryPageLabel">Page 1 of 1</span>
+            <button id="nextCategoryPage" type="button" class="ghost" disabled>
+              Next
+            </button>
+          </div>
+        </div>
+        <div id="categoryListContainer" class="category-list-container">
+          <div
+            id="categoryVisibilityList"
+            class="category-visibility-list"
+          ></div>
+        </div>
+      </section>
+
+      <section id="keyboardSettings" class="panel keyboard-panel">
+        <h2>Keyboard</h2>
+        <div class="category-extra-controls">
+          <button id="toggleKeyboardList" type="button" class="ghost">
+            Hide shortcuts
+          </button>
+          <div id="keyboardPager" class="category-pager">
+            <button id="prevKeyboardPage" type="button" class="ghost" disabled>
+              Prev
+            </button>
+            <span id="keyboardPageLabel">Page 1 of 1</span>
+            <button id="nextKeyboardPage" type="button" class="ghost" disabled>
+              Next
+            </button>
+          </div>
+        </div>
+        <div id="keyboardListContainer" class="category-list-container">
+          <div id="keyboardList" class="keyboard-grid">
+            <div class="row keyboard-shortcut">
+              <label>Opens the first item of the list</label>
+              <div class="shortcut">
+                <input
+                  type="text"
+                  placeholder="Type a shortcut"
+                  readonly
+                  data-command="open-first-item"
+                />
+                <button class="ghost" data-command="open-first-item">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div class="row keyboard-shortcut">
+              <label
+                >Adds the current page to the item list, or archive it if it's
+                already there</label
+              >
+              <div class="shortcut">
+                <input
+                  type="text"
+                  placeholder="Type a shortcut"
+                  readonly
+                  data-command="save-to-local-pocket"
+                />
+                <button class="ghost" data-command="save-to-local-pocket">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div class="row keyboard-shortcut">
+              <label>Save current page to Favorite</label>
+              <div class="shortcut">
+                <input
+                  type="text"
+                  placeholder="Type a shortcut"
+                  readonly
+                  data-command="save-current-tab-favorite"
+                />
+                <button class="ghost" data-command="save-current-tab-favorite">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div class="row keyboard-shortcut">
+              <label>Toggle Notes overlay</label>
+              <div class="shortcut">
+                <input
+                  type="text"
+                  placeholder="Type a shortcut"
+                  readonly
+                  data-command="toggle-notes-overlay"
+                />
+                <button class="ghost" data-command="toggle-notes-overlay">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div class="row keyboard-shortcut">
+              <label>Toggle AI sidebar</label>
+              <div class="shortcut">
+                <input
+                  type="text"
+                  placeholder="Type a shortcut"
+                  readonly
+                  data-command="open-ai-sidebar"
+                />
+                <button class="ghost" data-command="open-ai-sidebar">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div class="row keyboard-shortcut">
+              <label>Toggle Pomodoro Timer overlay</label>
+              <div class="shortcut">
+                <input
+                  type="text"
+                  placeholder="Type a shortcut"
+                  readonly
+                  data-command="toggle-pomodoro-overlay"
+                />
+                <button class="ghost" data-command="toggle-pomodoro-overlay">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div class="hint" style="margin-top: -4px; margin-bottom: 8px">
+              Tekan shortcut untuk <strong>buka</strong> sidebar jika tertutup, atau <strong>tutup</strong> sidebar jika sedang terbuka.
+            </div>
+            <div class="row keyboard-shortcut">
+              <label>Toggle AI overlay (floating window)</label>
+              <div class="shortcut">
+                <input
+                  type="text"
+                  placeholder="Type a shortcut"
+                  readonly
+                  data-command="toggle-ai-overlay"
+                />
+                <button class="ghost" data-command="toggle-ai-overlay">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div class="hint" style="margin-top: -4px; margin-bottom: 8px">
+              Tekan shortcut untuk <strong>buka</strong> AI overlay (tetingkap terapung) jika tertutup, atau <strong>tutup</strong> jika sedang terbuka. Jika ada teks terpilih, ia akan auto paste dan submit.
+            </div>
+            <div class="row keyboard-shortcut">
+              <label>Toggle Firefox Native AI Sidebar</label>
+              <div class="shortcut">
+                <input
+                  type="text"
+                  placeholder="Type a shortcut"
+                  readonly
+                  data-command="open-firefox-native-ai-sidebar"
+                />
+                <button class="ghost" data-command="open-firefox-native-ai-sidebar">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div class="hint" style="margin-top: -4px; margin-bottom: 8px">
+              Guna shortcut ini untuk buka/tutup <strong>AI sidebar terbina dalam Firefox</strong> (menggantikan Ctrl+Alt+X lalai). Perlukan native helper dipasang.
+            </div>
+            <div class="row keyboard-shortcut">
+              <label>Opens a random item of the list</label>
+              <div class="shortcut">
+                <input
+                  type="text"
+                  placeholder="Type a shortcut"
+                  readonly
+                  data-command="open-random-item"
+                />
+                <button class="ghost" data-command="open-random-item">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div class="row keyboard-shortcut">
+              <label>Toggle: random link across all categories (ignore category filter) 🌐🎲</label>
+              <div class="shortcut">
+                <input
+                  type="text"
+                  placeholder="Type a shortcut"
+                  readonly
+                  data-command="toggle-random-across-all"
+                />
+                <button class="ghost" data-command="toggle-random-across-all">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div class="row keyboard-shortcut">
+              <label>Switch to the next category</label>
+              <div class="shortcut">
+                <input
+                  type="text"
+                  placeholder="Type a shortcut"
+                  readonly
+                  data-command="cycle-category"
+                />
+                <button class="ghost" data-command="cycle-category">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div class="row keyboard-shortcut">
+              <label>Switch to the previous category</label>
+              <div class="shortcut">
+                <input
+                  type="text"
+                  placeholder="Type a shortcut"
+                  readonly
+                  data-command="cycle-category-prev"
+                />
+                <button class="ghost" data-command="cycle-category-prev">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div class="row keyboard-shortcut">
+              <label>Toggle category picker</label>
+              <div class="shortcut">
+                <input
+                  type="text"
+                  placeholder="Type a shortcut"
+                  readonly
+                  data-command="open-category-picker"
+                />
+                <button class="ghost" data-command="open-category-picker">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div class="row keyboard-shortcut">
+              <label>Global: next link</label>
+              <div class="shortcut">
+                <input
+                  type="text"
+                  placeholder="Type a shortcut"
+                  readonly
+                  data-command="picker-next-item"
+                />
+                <button class="ghost" data-command="picker-next-item">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div class="row keyboard-shortcut">
+              <label>Global: open random link</label>
+              <div class="shortcut">
+                <input
+                  type="text"
+                  placeholder="Type a shortcut"
+                  readonly
+                  data-command="picker-random-item"
+                />
+                <button class="ghost" data-command="picker-random-item">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div class="row keyboard-shortcut">
+              <label>Global: save all tabs</label>
+              <div class="shortcut">
+                <input
+                  type="text"
+                  placeholder="Type a shortcut"
+                  readonly
+                  data-command="picker-save-all-tabs"
+                />
+                <button class="ghost" data-command="picker-save-all-tabs">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div class="row keyboard-shortcut">
+              <label>Global: open settings</label>
+              <div class="shortcut">
+                <input
+                  type="text"
+                  placeholder="Type a shortcut"
+                  readonly
+                  data-command="picker-open-settings"
+                />
+                <button class="ghost" data-command="picker-open-settings">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div class="row keyboard-shortcut">
+              <label>Category picker: new category</label>
+              <div class="shortcut">
+                <input
+                  type="text"
+                  placeholder="Type a shortcut"
+                  readonly
+                  data-command="picker-new-category"
+                />
+                <button class="ghost" data-command="picker-new-category">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div class="row keyboard-shortcut">
+              <label>Category picker: delete category</label>
+              <div class="shortcut">
+                <input
+                  type="text"
+                  placeholder="Type a shortcut"
+                  readonly
+                  data-command="picker-delete-category"
+                />
+                <button class="ghost" data-command="picker-delete-category">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div class="row keyboard-shortcut">
+              <label>Category picker: toggle favorites</label>
+              <div class="shortcut">
+                <input
+                  type="text"
+                  placeholder="Type a shortcut"
+                  readonly
+                  data-command="picker-toggle-favorites"
+                />
+                <button class="ghost" data-command="picker-toggle-favorites">
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div class="row keyboard-shortcut">
+              <label>Summary (global / picker)</label>
+              <div class="shortcut">
+                <input
+                  type="text"
+                  placeholder="Type a shortcut"
+                  readonly
+                  data-command="picker-youtube-summary"
+                />
+                <button class="ghost" data-command="picker-youtube-summary">
+                  Clear
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="keyboard-options">
+          <div class="row">
+            <label for="cycleIncludeAll"
+              >Include "All categories" in the cycle</label
+            >
+            <input id="cycleIncludeAll" type="checkbox" />
+          </div>
+          <div class="row">
+            <label for="cycleIncludeUncategorized"
+              >Include "Uncategorized" in the cycle</label
+            >
+            <input id="cycleIncludeUncategorized" type="checkbox" />
+          </div>
+        </div>
+        <div id="shortcutStatus" class="hint"></div>
+        <p class="hint">
+          Tip: click the box and press your keys. Example: Ctrl+Shift+P.
+        </p>
+        <p class="hint">
+          If a shortcut conflicts with another command, we'll tell you.
+        </p>
+      </section>
+
+      <section id="automationSettings" class="panel" aria-labelledby="automationHeading">
+        <h2 id="automationHeading">Automations</h2>
+        <div class="row">
+          <label for="closeOnSave">Close tab when you add the page</label>
+          <input id="closeOnSave" type="checkbox" />
+        </div>
+        <div class="row">
+          <label for="closeOnSaveAllTabs"
+            >Close tabs when you save all tabs</label
+          >
+<input id="closeOnSaveAllTabs" type="checkbox" />
+        </div>
+      </section>
+
+      <section id="rediscoverSettings" class="panel">
+        <h2>Rediscover</h2>
+        <div class="row">
+          <label for="rediscoverEnabled">Aktifkan Rediscover</label>
+          <input id="rediscoverEnabled" type="checkbox" />
+        </div>
+        <div class="hint" style="margin-top: -8px; margin-bottom: 8px;">
+          Rediscover akan menghantar notification secara berkala untuk mengingatkan link yang tersimpan, bermula dari yang paling lama.
+        </div>
+        <div class="row">
+          <label for="rediscoverInterval">Setiap</label>
+          <div class="shortcut" style="gap:6px;flex-wrap:wrap;">
+            <input id="rediscoverInterval" type="number" min="1" step="any" style="width:80px;" />
+            <select id="rediscoverIntervalUnit" style="width:auto;">
+              <option value="saat">Saat</option>
+              <option value="minit">Minit</option>
+              <option value="jam">Jam</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <label for="rediscoverDismissAfter">Notification hilang selepas</label>
+          <select id="rediscoverDismissAfter">
+            <option value="4000">4 saat</option>
+            <option value="6000">6 saat</option>
+            <option value="8000">8 saat</option>
+            <option value="12000">12 saat</option>
+            <option value="20000">20 saat</option>
+            <option value="30000">30 saat</option>
+            <option value="0">Jangan tutup (guna default Firefox)</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="rediscoverColor">Warna notification</label>
+          <input id="rediscoverColor" type="color" style="width:48px;height:32px;padding:2px;border-radius:6px;cursor:pointer;" />
+        </div>
+        <div class="row">
+          <label>Mode</label>
+          <div class="shortcut" style="gap:12px;">
+            <label style="font-weight:normal;gap:4px;cursor:pointer;">
+              <input type="radio" name="rediscoverMode" value="sequential" /> Paling lama → termuda
+            </label>
+            <label style="font-weight:normal;gap:4px;cursor:pointer;">
+              <input type="radio" name="rediscoverMode" value="random" /> Rawak
+            </label>
+          </div>
+        </div>
+        <div class="row" id="rediscoverSequentialRow">
+          <label>Reset progress</label>
+          <button id="rediscoverResetCursor" type="button" class="ghost">Reset ke link paling lama</button>
+        </div>
+      </section>
+
+      <section class="panel actions">
+        <button id="saveSettings" class="primary">Save Settings</button>
+        <div id="saveStatus" class="hint"></div>
+      </section>
+    </div>
+
+    <script src="core/themeCore.js"></script>
+    <script src="core/importCore.js"></script>
+    <script src="core/categoryAutoRuleCore.js"></script>
+    <script src="icons/default-custom-icons-1.js"></script>
+    <script src="icons/default-custom-icons-2.js"></script>
+    <script src="settings.js"></script>
+    <script src="gesture-matcher.js"></script>
+    <script src="options.js"></script>
+  </body>
+</html>
