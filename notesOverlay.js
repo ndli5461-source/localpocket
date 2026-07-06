@@ -2246,9 +2246,10 @@
     // SSS — Selection Search Send to AI floating button
     const sssBtn = mk("button", [
       "display:none","position:absolute","z-index:10",
-      "padding:4px 10px","border-radius:8px",
+      "right:16px","bottom:16px",
+      "padding:6px 14px","border-radius:999px",
       "border:1px solid rgba(100,200,255,0.4)","background:rgba(16,18,28,0.96)",
-      "color:#7ab8ff","font-size:11px","font-weight:700","cursor:pointer",
+      "color:#7ab8ff","font-size:12px","font-weight:700","cursor:pointer",
       "white-space:nowrap","gap:5px","align-items:center",
       "box-shadow:0 4px 16px rgba(0,0,0,0.4)","outline:none",
       "transition:opacity 120ms ease"

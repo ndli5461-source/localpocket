@@ -366,18 +366,55 @@
 
   // SSS — hantar teks terpilih ke parent bila user select dalam editor
   let _sssDebounceTimer = null;
-  function emitSelection() {
+  let _sssLastText = "";
+
+  function getFieldSelection(el) {
+    if (!el || typeof el.selectionStart !== "number" || typeof el.selectionEnd !== "number") return "";
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    if (start === end) return "";
+    return String(el.value || "").slice(start, end);
+  }
+
+  function readSelectedText() {
+    // window.getSelection() tidak mengembalikan teks dalam <textarea>/<input>,
+    // jadi baca terus dari selectionStart/selectionEnd medan yang aktif.
+    const active = document.activeElement;
+    if (active === contentInput || active === titleInput) {
+      return getFieldSelection(active).trim();
+    }
+    // Fallback: cuba kedua-dua medan, kemudian selection dokumen biasa
+    const fromContent = getFieldSelection(contentInput).trim();
+    if (fromContent) return fromContent;
+    const fromTitle = getFieldSelection(titleInput).trim();
+    if (fromTitle) return fromTitle;
     const sel = window.getSelection ? window.getSelection() : null;
-    const text = sel ? sel.toString().trim() : "";
+    return sel ? sel.toString().trim() : "";
+  }
+
+  function emitSelection() {
+    const text = readSelectedText();
+    if (text === _sssLastText) return;
+    _sssLastText = text;
     emitToParent({ type: "lp-notes-selection", text });
   }
-  document.addEventListener("selectionchange", () => {
+
+  function scheduleEmitSelection(delay) {
     if (_sssDebounceTimer) clearTimeout(_sssDebounceTimer);
-    _sssDebounceTimer = setTimeout(emitSelection, 180);
-  });
+    _sssDebounceTimer = setTimeout(emitSelection, delay == null ? 120 : delay);
+  }
+
+  document.addEventListener("selectionchange", () => scheduleEmitSelection(180));
+  // Event "select" pada textarea/input adalah cara paling tepat untuk kesan pilihan teks
+  contentInput.addEventListener("select", () => scheduleEmitSelection(80));
+  titleInput.addEventListener("select", () => scheduleEmitSelection(80));
+  // Kesan pilihan melalui papan kekunci (Shift+Arrow, Ctrl+A) dan bila selection hilang
+  contentInput.addEventListener("keyup", () => scheduleEmitSelection(80));
+  titleInput.addEventListener("keyup", () => scheduleEmitSelection(80));
   // Juga emit bila mouseup dan touchend supaya lebih responsive
-  document.addEventListener("mouseup", emitSelection);
-  document.addEventListener("touchend", () => {
-    setTimeout(emitSelection, 80);
-  });
+  document.addEventListener("mouseup", () => scheduleEmitSelection(30));
+  document.addEventListener("touchend", () => scheduleEmitSelection(80));
+  // Reset cache bila fokus berubah supaya pilihan yang sama boleh di-emit semula
+  window.addEventListener("focus", () => { _sssLastText = ""; scheduleEmitSelection(80); });
+  window.addEventListener("blur", () => { _sssLastText = ""; });
 })();
